@@ -34,4 +34,29 @@
 //!
 //! The reference is the definition of correctness; the fast one is what runs.
 //!
-//! Status: scaffolding only. Implemented in Phase 1.
+//! # This crate
+//!
+//! [`blake2b_256`] is what the chain uses. [`blake2b_512`] exists because
+//! RFC 7693's own worked example is a 512-bit digest, and being able to
+//! reproduce it is worth more than the function itself.
+
+mod constants;
+
+pub mod reference;
+
+/// Computes a 256-bit BLAKE2b digest — the size this chain's proof of work uses.
+///
+/// Note this is **not** a truncated 512-bit digest. The output length is mixed
+/// into the initial state, so the two produce entirely unrelated results.
+pub fn blake2b_256(message: &[u8]) -> [u8; 32] {
+    reference::hash(message, 32)
+        .try_into()
+        .expect("hash returns exactly the requested length")
+}
+
+/// Computes a 512-bit BLAKE2b digest — BLAKE2b's natural output size.
+pub fn blake2b_512(message: &[u8]) -> [u8; 64] {
+    reference::hash(message, 64)
+        .try_into()
+        .expect("hash returns exactly the requested length")
+}
