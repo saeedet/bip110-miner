@@ -1,0 +1,12 @@
+# Rust build output
+/target/
+
+# Chain data never belongs in the repo. The node's datadir lives outside it
+# (~/.btcb2 by default), but guard against it being moved here.
+/chaindata/
+*.dat
+.cookie
+
+# Payout addresses and any key material.
+/secrets/
+*.env
