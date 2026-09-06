@@ -32,6 +32,16 @@ impl Hash256 {
     /// The all-zero hash — a null previous block, or an unset field.
     pub const ZERO: Self = Self([0u8; 32]);
 
+    /// Computes `sha256d(data)` — a txid, a wtxid, or a merkle node.
+    ///
+    /// Named for the algorithm rather than called `hash`, because this crate
+    /// has two hash functions in it and a bare `hash` would silently invite
+    /// the wrong one. The header's hash is [`pow_hash`](crate::pow::pow_hash),
+    /// which is not this and is never interchangeable with it.
+    pub fn sha256d(data: &[u8]) -> Self {
+        Self(sha256::sha256d(data))
+    }
+
     /// Wraps bytes already in internal order.
     pub const fn from_internal_bytes(bytes: [u8; 32]) -> Self {
         Self(bytes)
@@ -58,6 +68,31 @@ impl Hash256 {
         let mut bytes = self.0;
         bytes.reverse();
         bytes
+    }
+
+    /// Compares two hashes as the 256-bit numbers they represent.
+    ///
+    /// Named rather than provided through `Ord` on purpose: the internal bytes
+    /// are least-significant-first, so a derived byte-wise ordering would be
+    /// wrong, and silently so. Requiring an explicit call means nobody sorts
+    /// hashes by accident and gets a plausible-looking wrong answer.
+    ///
+    /// Walks from the most significant byte and stops at the first difference,
+    /// so in the mining loop — where hashes differ almost immediately — this
+    /// costs one or two comparisons rather than reversing 32 bytes.
+    pub fn numeric_cmp(&self, other: &Self) -> core::cmp::Ordering {
+        for i in (0..32).rev() {
+            match self.0[i].cmp(&other.0[i]) {
+                core::cmp::Ordering::Equal => continue,
+                ordering => return ordering,
+            }
+        }
+        core::cmp::Ordering::Equal
+    }
+
+    /// Whether this hash is numerically smaller than `other`.
+    pub fn is_below(&self, other: &Self) -> bool {
+        self.numeric_cmp(other) == core::cmp::Ordering::Less
     }
 
     /// Counts leading zero **bits** as a reader of the displayed hash would.

@@ -46,11 +46,48 @@ mod tags {
 
 /// The part of the proof of work that does not change while grinding nonces.
 ///
-/// Stages 0 to 3: the XOR mask, the consensus digest, the merge-mining hook,
-/// and the first BLAKE2b. All of these depend on the template and the
-/// extranonce, so they are computed once and reused across an entire sweep.
+/// # Two algorithms, one type
+///
+/// A chain that hardforks its proof of work has, by definition, two of them,
+/// and both are live: every node still validates the pre-fork history, and a
+/// regtest chain mined from genesis crosses the boundary on the way up. So
+/// this is an enum rather than the BLAKE2b pipeline alone.
+///
+/// ```text
+///     if (!m_header_v2) {  // SHA256d
+///         // Historical algorithm and common case.
+///         Assume(AreHeaderV2FieldsNull());
+///         return (HashWriter{} << *this).GetHash();
+///     }
+/// ```
+///
+/// That `Assume` is the part with teeth for a miner: on a v1 header the three
+/// extra nonce words and the time offset are not merely ignored, they are not
+/// serialised at all. Grinding them would compute the same hash forever. See
+/// [`Self::nonce_words`], which is how the search learns not to.
 #[derive(Clone)]
-pub struct PowMidstate {
+pub enum PowMidstate {
+    /// Pre-fork: plain SHA-256d over the 80-byte header.
+    ///
+    /// No midstate optimisation. The sibling Bitcoin project has one, because
+    /// there this is the hot loop; here it runs only on the handful of regtest
+    /// blocks below the activation height, and a fast path would be code that
+    /// exists to be admired rather than used.
+    Sha256d {
+        /// The serialised header. Only bytes 76..80, the nonce, ever change.
+        header: [u8; crate::header::HEADER_V1_SIZE],
+    },
+    /// Post-fork: stages 0 to 3 of the five-stage pipeline.
+    ///
+    /// The XOR mask, the consensus digest, the merge-mining hook, and the
+    /// first BLAKE2b. All depend on the template and the extranonce, so they
+    /// are computed once and reused across an entire sweep.
+    Blake2b(Blake2bMidstate),
+}
+
+/// The precomputed half of the BLAKE2b proof of work.
+#[derive(Clone)]
+pub struct Blake2bMidstate {
     /// Output of the first BLAKE2b — the value the hardware is handed.
     stage3: [u8; 32],
     /// The merge-mining digest, needed again by two of the four layouts.
@@ -64,6 +101,47 @@ pub struct PowMidstate {
 }
 
 impl PowMidstate {
+    /// Precomputes whatever `header`'s version allows.
+    pub fn new(header: &BlockHeader) -> Self {
+        if header.header_v2 {
+            Self::Blake2b(Blake2bMidstate::new(header))
+        } else {
+            let serialized = header.serialize();
+            Self::Sha256d {
+                header: serialized
+                    .try_into()
+                    .expect("a v1 header serialises to exactly HEADER_V1_SIZE bytes"),
+            }
+        }
+    }
+
+    /// How many 32-bit words of nonce space this header exposes.
+    ///
+    /// One before the fork, four after — `nonce`, `nonce2`, `nonce3`, and the
+    /// time offset. A search that ignored this on a pre-fork header would roll
+    /// words that are never serialised, recomputing one hash forever.
+    pub const fn nonce_words(&self) -> u32 {
+        match self {
+            Self::Sha256d { .. } => 1,
+            Self::Blake2b(_) => 4,
+        }
+    }
+
+    /// Runs the part of the proof of work that a miner repeats.
+    pub fn hash(&self, nonce: u32, nonce2: u32, nonce3: u32, time_offset: u32) -> Hash256 {
+        match self {
+            Self::Sha256d { header } => {
+                // The nonce is the header's last four bytes.
+                let mut bytes = *header;
+                bytes[76..80].copy_from_slice(&nonce.to_le_bytes());
+                Hash256::sha256d(&bytes)
+            }
+            Self::Blake2b(midstate) => midstate.hash(nonce, nonce2, nonce3, time_offset),
+        }
+    }
+}
+
+impl Blake2bMidstate {
     /// Runs stages 0 to 3 for `header`.
     ///
     /// Only the nonce fields and `time_offset` are ignored — everything else in
@@ -150,6 +228,7 @@ impl PowMidstate {
     /// Runs stages 4 and 5 — the part a miner repeats.
     ///
     /// This is the hot loop: one BLAKE2b over at most 160 bytes, then a mask.
+    /// Reached through [`PowMidstate::hash`], which picks this or SHA-256d.
     pub fn hash(&self, nonce: u32, nonce2: u32, nonce3: u32, time_offset: u32) -> Hash256 {
         let (n, n2) = (nonce.to_le_bytes(), nonce2.to_le_bytes());
         let (n3, offset) = (nonce3.to_le_bytes(), time_offset.to_le_bytes());

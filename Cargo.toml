@@ -19,6 +19,14 @@ license = "MIT"
 blake2b = { path = "crates/blake2b" }
 sha256 = { path = "crates/sha256" }
 btcb2-primitives = { path = "crates/btcb2-primitives" }
+node-rpc = { path = "crates/node-rpc" }
+mining = { path = "crates/mining" }
+
+# The only third-party dependencies in the project. Everything Bitcoin-specific
+# is written here; JSON is not Bitcoin-specific, and hand-rolling a parser for
+# `getblocktemplate` would be effort spent learning nothing about the chain.
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 
 [workspace.lints.rust]
 # This codebase is meant to be read, so an undocumented public item is a build

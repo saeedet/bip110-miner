@@ -30,6 +30,21 @@ pub fn sha256(message: &[u8]) -> [u8; 32] {
     reference::sha256(message)
 }
 
+/// Computes SHA-256 applied twice: `SHA256(SHA256(message))`.
+///
+/// # Why this survived the fork
+///
+/// The fork replaced the *header* hash, not every hash in the protocol.
+/// Transaction ids and the merkle tree above them are still SHA-256d, and had
+/// to be: changing them would have changed every txid in the shared history
+/// before the fork height, which is not a thing a hard fork can do.
+///
+/// So the merkle root a miner commits to is computed exactly as Bitcoin
+/// computes it. Only the header wrapped around it is hashed differently.
+pub fn sha256d(message: &[u8]) -> [u8; 32] {
+    sha256(&sha256(message))
+}
+
 /// Computes a BIP340 tagged hash: `SHA256(SHA256(tag) ‖ SHA256(tag) ‖ data)`.
 ///
 /// # Why the tag is hashed and repeated
