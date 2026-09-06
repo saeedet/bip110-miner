@@ -16,7 +16,7 @@ node's own source at tag `v29.4.1.knots20260508`, not from a blog post:
 | | |
 |---|---|
 | Node software | [`bitcoinknots/bitcoin`](https://github.com/bitcoinknots/bitcoin) — a Bitcoin Core fork, so `getblocktemplate` / `submitblock` survive |
-| Proof of work | `blake2b_nokey(out, 32, header, len)` — **single, unkeyed BLAKE2b-256**. Not double, no salt, no personalisation |
+| Proof of work | A **five-stage pipeline** using *both* SHA-256 and BLAKE2b — see [docs/proof-of-work.md](docs/proof-of-work.md). Not a drop-in hash swap |
 | Header | **164-byte "v2"**, flagged by `0x80000000` in the version field |
 | Activation | `Blake2bHeight = 961640` (mainnet), `150308` (testnet), configurable on regtest |
 | Difficulty easing | `Blake2bTargetShift = 22` — a ~4.2-million-fold easing at the fork |
@@ -77,6 +77,7 @@ knots node (BLAKE2b)  ──JSON-RPC──▶  pool  ──Stratum V1──▶  
 | Crate | Responsibility |
 |---|---|
 | `blake2b` | BLAKE2b. Readable reference impl + optimised one, tested against each other |
+| *(planned)* `sha256` | SHA-256 and BIP340 tagged hashes — the PoW needs three of them. Portable from the sibling project, where it is already tested against real block headers |
 | *(planned)* `btcb2-primitives` | The 164-byte header v2, transactions, merkle trees, targets |
 | *(planned)* `node-rpc` | Typed JSON-RPC for `getblocktemplate` / `submitblock` |
 | *(planned)* `mining` | Coinbase construction, block assembly, nonce search |
@@ -97,8 +98,8 @@ differences actually encountered rather than imagined.
 ## Phases
 
 - [ ] **0** — Toolchains, repo skeleton, BLAKE2b regtest node running
-- [ ] **1** — `blake2b`: reproduces RFC 7693 vectors and real block hashes
-- [ ] **2** — `btcb2-primitives`: round-trips a real 164-byte header
+- [ ] **1** — `blake2b` + `sha256`: RFC 7693 vectors, and BIP340 tagged hashes
+- [ ] **2** — the full PoW pipeline reproduces a real block hash from its header
 - [ ] **3** — Mine a regtest block the node accepts
 - [ ] **4** — Split into pool + miner over Stratum V1
 - [ ] **5** — Their testnet — a real block on a public network
