@@ -1,0 +1,32 @@
+# Workspace root for btcb2-miner.
+#
+# A virtual manifest: it defines no package itself, it only groups the crates
+# under crates/ so they share one target/ directory, one lockfile, and one set
+# of dependency versions.
+
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.97"
+license = "MIT"
+
+# Pinned once here and referenced from each crate as `foo.workspace = true`,
+# so two crates can never disagree about a version.
+[workspace.dependencies]
+blake2b = { path = "crates/blake2b" }
+
+[workspace.lints.rust]
+# This codebase is meant to be read, so an undocumented public item is a build
+# warning rather than a matter of discipline.
+missing_docs = "warn"
+# Require an explicit `unsafe {}` even inside an `unsafe fn`, so the exact
+# dangerous line is always visible.
+unsafe_op_in_unsafe_fn = "warn"
+
+[workspace.lints.clippy]
+# Every unsafe block must carry a `// SAFETY:` comment explaining why it is
+# sound.
+undocumented_unsafe_blocks = "warn"

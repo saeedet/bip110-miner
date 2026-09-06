@@ -1,0 +1,12 @@
+[package]
+name = "blake2b"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "BLAKE2b, with a readable reference implementation and an optimised one"
+
+[dependencies]
+
+[lints]
+workspace = true
