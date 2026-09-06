@@ -84,26 +84,68 @@ fn the_fork_is_visible_in_the_format() {
 /// with any one of them wrong.
 #[test]
 fn pow_reproduces_real_block_hashes() {
-    let mut checked = 0;
+    let (mut v1, mut v2) = (0, 0);
 
     for (height, raw, expected) in BLOCKS {
         let header = BlockHeader::deserialize(&unhex(raw)).expect("parses");
 
-        // v1 blocks are SHA-256d, which this crate does not implement — it is
-        // a BLAKE2b miner. They are here for the round-trip tests above.
-        if !header.header_v2 {
-            continue;
-        }
+        assert_eq!(pow_hash(&header).to_string(), *expected, "height {height}");
 
-        assert_eq!(
-            pow_hash(&header).to_string(),
-            *expected,
-            "height {height}"
-        );
-        checked += 1;
+        if header.header_v2 { v2 += 1 } else { v1 += 1 }
     }
 
-    assert!(checked >= 5, "expected several BLAKE2b blocks, checked {checked}");
+    // Both regimes must actually be exercised. An earlier version of this test
+    // skipped the v1 blocks on the reasoning that this is a BLAKE2b miner and
+    // SHA-256d was somebody else's problem — which was wrong twice over. A
+    // chain that hardforks its proof of work has two of them, and a regtest
+    // chain mined from genesis runs the old one for real. Skipping it here let
+    // a miner ship that hashed pre-fork headers with the wrong algorithm and
+    // reported hashes the node did not agree with.
+    assert!(v1 >= 2, "expected pre-fork blocks, checked {v1}");
+    assert!(v2 >= 5, "expected post-fork blocks, checked {v2}");
+}
+
+/// A header exposes one nonce word before the fork and four after.
+///
+/// The search relies on this to know how far a carry may travel. Get it wrong
+/// in the generous direction and a pre-fork search rolls three words that are
+/// never serialised, recomputing a single hash until the attempt budget runs
+/// out — no error, no progress, no block.
+#[test]
+fn nonce_width_follows_the_header_version() {
+    use btcb2_primitives::PowMidstate;
+
+    for (height, raw, _) in BLOCKS {
+        let header = BlockHeader::deserialize(&unhex(raw)).expect("parses");
+        let expected = if header.header_v2 { 4 } else { 1 };
+
+        assert_eq!(
+            PowMidstate::new(&header).nonce_words(),
+            expected,
+            "height {height}"
+        );
+    }
+}
+
+/// On a v1 header the three extra words are not serialised, so they cannot
+/// reach the hash — and the hash function must ignore them rather than fold
+/// them in.
+#[test]
+fn pre_fork_hashing_ignores_the_v2_nonce_words() {
+    use btcb2_primitives::PowMidstate;
+
+    let (_, raw, expected) = BLOCKS.iter().find(|(h, _, _)| *h == 8).expect("block 8");
+    let header = BlockHeader::deserialize(&unhex(raw)).expect("parses");
+    assert!(!header.header_v2);
+
+    let midstate = PowMidstate::new(&header);
+
+    assert_eq!(midstate.hash(header.nonce, 0, 0, 0).to_string(), *expected);
+    assert_eq!(
+        midstate.hash(header.nonce, 0xDEAD, 0xBEEF, 0x1234).to_string(),
+        *expected,
+        "words absent from the wire must be absent from the hash"
+    );
 }
 
 /// A header parsed from real data must hash the same through the convenience

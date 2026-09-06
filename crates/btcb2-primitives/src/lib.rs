@@ -9,8 +9,16 @@
 
 pub mod hash;
 pub mod header;
+pub mod hex;
+pub mod merkle;
 pub mod pow;
+pub mod reader;
+pub mod target;
+pub mod transaction;
+pub mod varint;
 
 pub use hash::Hash256;
 pub use header::BlockHeader;
-pub use pow::{PowMidstate, pow_hash};
+pub use pow::{Blake2bMidstate, PowMidstate, pow_hash};
+pub use target::Target;
+pub use transaction::{OutPoint, Transaction, TxIn, TxOut};
