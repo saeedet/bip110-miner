@@ -78,7 +78,7 @@ knots node (BLAKE2b)  ──JSON-RPC──▶  pool  ──Stratum V1──▶  
 |---|---|
 | `blake2b` | BLAKE2b. Readable reference impl + optimised one, tested against each other |
 | `sha256` | SHA-256 and BIP340 tagged hashes — the PoW needs three of them. Portable from the sibling project, where it is already tested against real block headers |
-| *(planned)* `btcb2-primitives` | The 164-byte header v2, transactions, merkle trees, targets |
+| `btcb2-primitives` | The 164-byte header v2 and the five-stage proof of work. Pure, no I/O |
 | *(planned)* `node-rpc` | Typed JSON-RPC for `getblocktemplate` / `submitblock` |
 | *(planned)* `mining` | Coinbase construction, block assembly, nonce search |
 | *(planned)* `pool` / `miner` | The Stratum split |
@@ -99,7 +99,7 @@ differences actually encountered rather than imagined.
 
 - [x] **0** — Toolchains, repo skeleton, BLAKE2b regtest node running
 - [x] **1** — `blake2b` + `sha256`: RFC 7693 vectors, BIP340 tagged hashes, and the full PoW pipeline reproducing real block hashes
-- [ ] **2** — the full PoW pipeline reproduces a real block hash from its header
+- [x] **2** — `btcb2-primitives`: the 164-byte header, and the PoW reproducing real block hashes
 - [ ] **3** — Mine a regtest block the node accepts
 - [ ] **4** — Split into pool + miner over Stratum V1
 - [ ] **5** — Their testnet — a real block on a public network

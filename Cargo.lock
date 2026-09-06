@@ -7,5 +7,13 @@ name = "blake2b"
 version = "0.1.0"
 
 [[package]]
+name = "btcb2-primitives"
+version = "0.1.0"
+dependencies = [
+ "blake2b",
+ "sha256",
+]
+
+[[package]]
 name = "sha256"
 version = "0.1.0"
