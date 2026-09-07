@@ -22,6 +22,8 @@ use mining::{BlockBuilder, CoinbaseBuilder, witness};
 use node_rpc::BlockTemplate;
 use stratum::Job;
 
+use crate::min_difficulty::Window;
+
 /// A job, plus everything needed to rebuild a real block from a share.
 ///
 /// The miner receives only [`Self::job`]. The rest stays here, because the
@@ -41,6 +43,13 @@ pub struct ActiveJob {
     pub height: u32,
     /// The target a hash must meet to be a real block.
     pub network_target: Target,
+    /// The minimum-difficulty window this job was built for, if any.
+    ///
+    /// Kept rather than reduced to a timestamp so the reason travels with the
+    /// number: a solved block may carry a timestamp ahead of the wall clock,
+    /// and submitting it early gets it rejected as `time-too-new` — which is
+    /// temporary rather than fatal, so the right response is to wait.
+    pub min_difficulty: Option<Window>,
 }
 
 /// Builds a job from a template.
@@ -49,6 +58,7 @@ pub fn build(
     template: &BlockTemplate,
     payout_script: &[u8],
     headline: Option<&[u8]>,
+    min_difficulty: Option<Window>,
     clean_jobs: bool,
 ) -> Result<ActiveJob, BuildError> {
     let field = |error: String| BuildError::Template(error);
@@ -102,13 +112,27 @@ pub fn build(
     let block = BlockBuilder::new(coinbase, transactions, txids)
         .map_err(|error| BuildError::Block(error.to_string()))?;
 
+    // On a minimum-difficulty network the template's own timestamp and target
+    // are the wrong ones to use — see the `min_difficulty` module. The
+    // substitution has to happen *here*, before the header exists, because the
+    // timestamp is folded into `h1` and so into every digest downstream of it.
+    // Patching a built header would leave the job describing a different block
+    // than the one the pool would later verify against.
+    let (time_on_wire, bits) = match min_difficulty {
+        Some(window) => (window.ntime, crate::min_difficulty::MIN_DIFFICULTY_BITS),
+        None => (
+            u32::try_from(template.current_time).map_err(|_| BuildError::TimeOverflow)?,
+            template.compact_bits().map_err(|e| field(e.to_string()))?,
+        ),
+    };
+
     let from_template = BlockHeader {
         header_v2: template.header_v2(),
         version: template.base_version(),
         prev_block: template.previous_block().map_err(|e| field(e.to_string()))?,
         merkle_root: Hash256::ZERO,
-        time_on_wire: u32::try_from(template.current_time).map_err(|_| BuildError::TimeOverflow)?,
-        bits: template.compact_bits().map_err(|e| field(e.to_string()))?,
+        time_on_wire,
+        bits,
         nonce: 0,
         nonce2: 0,
         nonce3: 0,
@@ -149,7 +173,11 @@ pub fn build(
         header,
         block,
         height: template.height,
-        network_target: template.target().map_err(|e| field(e.to_string()))?,
+        // Derived from the bits actually in the header, not from the template,
+        // so the two can never disagree about what counts as a block.
+        network_target: Target::from_compact(bits)
+            .map_err(|e| field(format!("undecodable target {bits:#010x}: {e}")))?,
+        min_difficulty,
     })
 }
 

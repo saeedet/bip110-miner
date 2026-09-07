@@ -24,6 +24,7 @@
 //! connections. Each connection gets a reader and a writer. Nothing else.
 
 mod job_builder;
+mod min_difficulty;
 mod readiness;
 mod session;
 mod state;
@@ -142,6 +143,10 @@ fn poll_templates(
     wakeups: &std::sync::mpsc::Receiver<()>,
     network: Network,
 ) {
+    // testnet4 is the only network here with a minimum-difficulty rule.
+    // Mainnet has none, and on regtest the target is trivial already.
+    let min_difficulty_network = network == Network::Testnet4;
+
     let mut last_tip = None;
     let mut last_bits: Option<u32> = None;
     let mut last_built = std::time::Instant::now();
@@ -192,7 +197,28 @@ fn poll_templates(
                     // flight, so miners are told to start over in either case.
                     let clean = tip_changed || bits_changed;
 
-                    match job_builder::build(job_id, &template, payout_script, headline, clean) {
+                    // The template's own timestamp and target are the wrong
+                    // ones on a minimum-difficulty network — see the
+                    // `min_difficulty` module. Computing the window needs the
+                    // parent's timestamp, which the template does not carry.
+                    let window = if min_difficulty_network {
+                        match client.get_block_header(&template.previous_block_hash) {
+                            Ok(parent) => {
+                                let min_time = u32::try_from(template.min_time).unwrap_or(0);
+                                Some(min_difficulty::plan(parent.time, min_time))
+                            }
+                            Err(error) => {
+                                eprintln!("cannot read the parent header: {error}");
+                                None
+                            }
+                        }
+                    } else {
+                        None
+                    };
+
+                    match job_builder::build(
+                        job_id, &template, payout_script, headline, window, clean,
+                    ) {
                         Ok(active) => {
                             let height = active.height;
                             let transactions = active.block.transactions.len();
@@ -205,6 +231,31 @@ fn poll_templates(
                                     job.job.job_id,
                                     state.subscriber_count(),
                                 );
+
+                                // Say plainly when the chain's clock is being
+                                // pushed forward, and by how much. Mining the
+                                // minimum-difficulty window this way is legal
+                                // and standard on testnet4, but it is a choice
+                                // that affects everyone on the network, so it
+                                // should be visible rather than incidental.
+                                if let Some(window) = window {
+                                    let ahead = window.seconds_ahead_of(unix_now());
+                                    let difficulty =
+                                        btcb2_primitives::Target::difficulty(job.job.bits);
+                                    if ahead > 0 {
+                                        println!(
+                                            "  minimum difficulty ({difficulty:.0}) — stamping \
+                                             {}m{:02}s ahead of the wall clock",
+                                            ahead / 60,
+                                            ahead % 60,
+                                        );
+                                    } else {
+                                        println!(
+                                            "  minimum difficulty ({difficulty:.0}) — the window \
+                                             is open on its own, no clock pushed"
+                                        );
+                                    }
+                                }
                             } else if bits_changed {
                                 println!(
                                     "DIFFICULTY CHANGED at height {height} — job {} \

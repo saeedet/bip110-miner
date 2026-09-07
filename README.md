@@ -99,8 +99,18 @@ shift left difficulty far below the hashpower that turned up.
 
 **As engineering, this is more interesting than mining Bitcoin.** BLAKE2b has no
 hardware acceleration on any consumer machine, but it is fast in software by
-design — so a CPU is not competing against a decade of dedicated silicon. On a
-chain this small, a laptop can plausibly find real blocks.
+design — so a CPU is not competing against a decade of dedicated silicon. This
+is no longer a claim: on 2026-09-07 this project mined testnet4 block 150,616
+on six cores, and the network took it.
+
+Measured throughput, `cargo run --release --example hashrate -p mining`:
+
+| Threads | Rate |
+|---|---|
+| 1 | 5.31 MH/s |
+| 2 | 10.20 MH/s |
+| 4 | 19.77 MH/s |
+| 8 | 26.14 MH/s |
 
 **As an investment it is close to worthless.** The fork drew about 2.53% miner
 support. One small beta exchange listed it with bids near $82 against asks near
@@ -236,6 +246,47 @@ Port 3334, not Stratum's customary 3333. This chain already shares Bitcoin's
 P2P magic and RPC ports — a hazard, not a convenience — and there was no reason
 to add a third collision when both miners might run side by side.
 
+## testnet4, and the number that decides everything
+
+The fork activates on **testnet4** at height 150,308 — not testnet3, which sets
+no `Blake2bHeight` at all and never forks.
+
+Two templates for the same chain, eight minutes apart:
+
+| | `bits` | difficulty | expected time at 26 MH/s |
+|---|---|---|---|
+| within 20 min of the parent | `190295cb` | 1,661,387,930 | **8,600 years** |
+| more than 20 min after it | `1d00ffff` | 1 | **2.7 minutes** |
+
+testnet4 lets a block use difficulty 1 if its timestamp is more than two block
+intervals past its parent's. With almost no hashpower on the BLAKE2b side,
+essentially every block on this chain qualifies — so `getblocktemplate` on its
+own is useless, because it reports the difficulty for the timestamp *it* would
+pick, which is roughly now. Choosing the timestamp deliberately is the entire
+difference between the two rows above. See `crates/pool/src/min_difficulty.rs`.
+
+Consensus also allows a timestamp up to two hours ahead of the present, so a
+miner need not wait 20 real minutes — it can stamp forward and mine at once.
+That is standard on Bitcoin's testnet4 and it is what this pool does, but it
+pushes the chain's clock ahead of the world's, about six blocks before the
+allowance runs out. The pool prints how far ahead it is stamping on every new
+tip, so it stays a visible choice rather than an incidental one.
+
+### The result
+
+```
+*** BLOCK FOUND at height 150616 ***
+    0000000063400d7051d4049e1cd43f0d068c52768d76d41f88bc043bc5cca40e
+```
+
+Mined 2026-09-07 at 26 MH/s across six cores, and — the part that matters —
+adopted as the new tip by the independent Knots node at `82.67.102.15`, which
+had reported 150,615 a minute earlier.
+
+Its header is now a test vector like any other, read back off the chain. The
+extranonce reads `…0001` then `…0002`: the pool's assigned half followed by the
+miner thread's own, spliced into one 16-byte header field.
+
 ## Testing across the fork
 
 The ordinary regtest chain sits above its activation height, so mining on it
@@ -260,7 +311,7 @@ Acceptance is not evidence; agreement is.
 - [x] **2** — `btcb2-primitives`: the 164-byte header, and the PoW reproducing real block hashes
 - [x] **3** — Mine a regtest block the node accepts — *and one on each side of the fork*
 - [x] **4** — Split into pool + miner over Stratum V1
-- [ ] **5** — Their testnet — a real block on a public network
+- [x] **5** — testnet4 — *mined block 150,616, accepted by an independent node*
 - [ ] **6** — Mainnet, only after measuring the real difficulty
 - [ ] **7** — Extract the `Chain` trait
 
