@@ -27,6 +27,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
 
 [[package]]
+name = "miner"
+version = "0.1.0"
+dependencies = [
+ "btcb2-primitives",
+ "mining",
+ "serde_json",
+ "stratum",
+]
+
+[[package]]
 name = "mining"
 version = "0.1.0"
 dependencies = [
@@ -40,6 +50,17 @@ dependencies = [
  "btcb2-primitives",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "pool"
+version = "0.1.0"
+dependencies = [
+ "btcb2-primitives",
+ "mining",
+ "node-rpc",
+ "serde_json",
+ "stratum",
 ]
 
 [[package]]
@@ -115,6 +136,15 @@ dependencies = [
 [[package]]
 name = "sha256"
 version = "0.1.0"
+
+[[package]]
+name = "stratum"
+version = "0.1.0"
+dependencies = [
+ "btcb2-primitives",
+ "serde",
+ "serde_json",
+]
 
 [[package]]
 name = "syn"
