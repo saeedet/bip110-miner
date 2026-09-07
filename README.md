@@ -18,7 +18,7 @@ node's own source at tag `v29.4.1.knots20260508`, not from a blog post:
 | Node software | [`bitcoinknots/bitcoin`](https://github.com/bitcoinknots/bitcoin) — a Bitcoin Core fork, so `getblocktemplate` / `submitblock` survive |
 | Proof of work | A **five-stage pipeline** using *both* SHA-256 and BLAKE2b — see [docs/proof-of-work.md](docs/proof-of-work.md). Not a drop-in hash swap |
 | Header | **164-byte "v2"**, flagged by `0x80000000` in the version field |
-| Activation | `Blake2bHeight = 961640` (mainnet), `150308` (testnet), configurable on regtest |
+| Activation | `Blake2bHeight = 961640` (mainnet), `150308` (**testnet4**), configurable on regtest |
 | Difficulty easing | `Blake2bTargetShift = 22` — a ~4.2-million-fold easing at the fork |
 | Fork message | `"8-30 NYPost Deride And Conquer"` — this chain's genesis-style headline |
 
@@ -49,6 +49,51 @@ m_flags  m_xor_key_mask_clear_bits  m_xor_key  m_height  m_mm_rhs
 header*. On Bitcoin, rolling the extranonce means rebuilding the coinbase, which
 changes its txid, which changes the merkle root. Here the merkle root never
 moves. That is simpler, and it changes what a pool has to send a miner.
+
+## One P2P network, two chains
+
+The fork changed neither the network magic nor the default ports. Mainnet is
+still `f9beb4d9` on 8333, testnet4 still `1c163f28` on 48333, and both use
+Bitcoin's own DNS seeds. Nodes on either side of the fork therefore meet
+constantly, and a datadir mix-up does not fail loudly — it produces a node that
+starts, connects, and quietly disagrees about which chain is real. Hence the
+dedicated `~/.btcb2`.
+
+What keeps the two apart is a **service bit**, `NODE_BLAKE2B = 1 << 28`. Knots
+prefers peers advertising it for the first outbound-full-relay slots, demotes
+those without it to an extra connection rather than a counted one, and drives
+its DNS-seed cadence off how many it knows about. The hardfork-aware seeds
+answer the `x10000009` prefix — `NETWORK | WITNESS | BLAKE2B`.
+
+That prefix makes the fork's health measurable with a DNS query and no node at
+all. Measured 2026-09-07:
+
+| Seed | any (`x9`) | BLAKE2b (`x10000009`) |
+|---|---|---|
+| `seed.bitcoin.haf.ovh` | 25 | **25** |
+| `dnsseed.bitcoin.dashjr-list-of-p2p-nodes.us` | 22 | **22** |
+| `seed.bitcoin.sipa.be` | 25 | 0 — filter unsupported |
+| `seed.testnet4.bitcoin.sprovoost.nl` | 22 | **0** |
+| `seed.testnet4.wiz.biz` | 0 | 0 — filter unsupported |
+| `seed.testnet-bitcoin.haf.ovh` | 1 | **1** |
+
+Read the zeroes carefully: a seed that does not support the prefix returns
+nothing either way, so only a seed with a non-zero `x9` count says anything. By
+that standard mainnet is healthy and **testnet4 has exactly one reachable
+BLAKE2b peer** — Sjors Provoost's seed supports filtering, knows 22 testnet4
+nodes, and finds none of them on this side of the fork.
+
+Version handshakes against those peers, same day:
+
+```
+mainnet   38.102.85.36:8333    /Satoshi:29.4.1/Knots:20260508/     height 968974
+testnet4  82.67.102.15:48333   /Satoshi:29.4.1/Knots:20260508rc4/  height 150601
+```
+
+Both chains are alive. Bitcoin's own mainnet was at 965,905 the same day, so
+the BLAKE2b chain is **ahead** — 7,334 blocks in the eight days since
+activation, roughly six times the ten-minute target, because the 2²² target
+shift left difficulty far below the hashpower that turned up.
 
 ## Honest assessment
 
