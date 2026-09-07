@@ -127,6 +127,38 @@ impl PowMidstate {
         }
     }
 
+    /// Builds a midstate from what a Stratum job carries.
+    ///
+    /// A pool runs stages 0 to 2 and sends the results; a miner picks up at
+    /// stage 3. That split is not this project's invention — it is the same
+    /// boundary [`Self::new`] computes, seen from the side that does not have
+    /// the header.
+    ///
+    /// # What is missing, and why that is the point
+    ///
+    /// There is no XOR mask here, because a miner is never told one. A pool
+    /// publishes the *hash* of its XOR key and keeps the key itself, so a
+    /// miner can see that a share is good but not that it is a block — which
+    /// is what makes block withholding impossible rather than merely
+    /// detectable. The mask is applied by the pool, afterwards, in stage 5.
+    ///
+    /// A solo miner is its own pool and uses a null key, so no mask exists and
+    /// the hashes this produces are already final.
+    pub fn from_stratum_job(
+        consensus_digest: &[u8; 32],
+        extranonce: &[u8; 16],
+        prev_hidden: &[u8; 32],
+        flags: u8,
+    ) -> Self {
+        Self::Blake2b(Blake2bMidstate {
+            stage3: Blake2bMidstate::stage3(consensus_digest, extranonce),
+            h2: *consensus_digest,
+            prev_hidden: *prev_hidden,
+            xor_mask: [0u8; 32],
+            flags,
+        })
+    }
+
     /// Runs the part of the proof of work that a miner repeats.
     pub fn hash(&self, nonce: u32, nonce2: u32, nonce3: u32, time_offset: u32) -> Hash256 {
         match self {
@@ -205,24 +237,51 @@ impl Blake2bMidstate {
         debug_assert_eq!(h2_hasher.bytes_written(), 0x40 + 0x60);
         let h2 = h2_hasher.finalize();
 
-        // --- stage 3: the first BLAKE2b, the Stratum-facing half -----------
-        //
-        // The source notes these are the fields sent to machines over Stratum
-        // v1: the leading zero word and `h2` play the part of `coinb1`, and the
-        // extranonce sits where an extranonce goes.
-        let mut stage3_input = Vec::with_capacity(52);
-        stage3_input.extend_from_slice(&0u32.to_le_bytes());
-        stage3_input.extend_from_slice(&h2);
-        stage3_input.extend_from_slice(&header.extranonce);
-        debug_assert_eq!(stage3_input.len(), 52);
-
         Self {
-            stage3: blake2b::blake2b_256(&stage3_input),
+            stage3: Self::stage3(&h2, &header.extranonce),
             h2,
             prev_hidden,
             xor_mask,
             flags: header.flags,
         }
+    }
+
+    /// The consensus digest — `h2` — that a Stratum job carries as `coinb1`.
+    pub const fn consensus_digest(&self) -> &[u8; 32] {
+        &self.h2
+    }
+
+    /// The hidden previous-block hash a Stratum job carries as `prevhash`.
+    ///
+    /// Returned with its first 6 bytes already blanked, as stage 4 layout 0
+    /// consumes it. Blanking is idempotent, so a job that arrives blanked and
+    /// is blanked again hashes the same either way.
+    pub fn hidden_prev_block(&self) -> [u8; 32] {
+        let mut hidden = self.prev_hidden;
+        hidden[..6].fill(0);
+        hidden
+    }
+
+    /// Stage 3: the first BLAKE2b, and the Stratum-facing half.
+    ///
+    /// The source notes these are exactly the fields sent to machines over
+    /// Stratum v1 — the leading zero word and `h2` play the part of `coinb1`,
+    /// and the extranonce sits where an extranonce goes:
+    ///
+    /// ```text
+    ///     ss << (uint32_t)0;   // Final 3 bytes are part of Sv1 "coinb1"
+    ///     ss << h2_hash;       // Remainder of Sv1 "coinb1"
+    ///     ss << m_extranonce;  // Sv1 "extranonce"
+    ///     Assert(ss.size() == 52);
+    /// ```
+    fn stage3(h2: &[u8; 32], extranonce: &[u8; 16]) -> [u8; 32] {
+        let mut input = Vec::with_capacity(52);
+        input.extend_from_slice(&0u32.to_le_bytes());
+        input.extend_from_slice(h2);
+        input.extend_from_slice(extranonce);
+        debug_assert_eq!(input.len(), 52);
+
+        blake2b::blake2b_256(&input)
     }
 
     /// Runs stages 4 and 5 — the part a miner repeats.

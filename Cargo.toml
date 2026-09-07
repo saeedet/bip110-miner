@@ -19,8 +19,11 @@ license = "MIT"
 blake2b = { path = "crates/blake2b" }
 sha256 = { path = "crates/sha256" }
 btcb2-primitives = { path = "crates/btcb2-primitives" }
+stratum = { path = "crates/stratum" }
 node-rpc = { path = "crates/node-rpc" }
 mining = { path = "crates/mining" }
+pool = { path = "crates/pool" }
+miner = { path = "crates/miner" }
 
 # The only third-party dependencies in the project. Everything Bitcoin-specific
 # is written here; JSON is not Bitcoin-specific, and hand-rolling a parser for
