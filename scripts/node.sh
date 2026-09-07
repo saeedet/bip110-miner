@@ -17,7 +17,7 @@
 #   ./scripts/node.sh status [network]
 #   ./scripts/node.sh cli    [network] <args...>
 #
-# `network` is regtest (default), testnet, or mainnet.
+# `network` is regtest (default), testnet4, or mainnet.
 
 set -uo pipefail
 
@@ -51,7 +51,7 @@ case "$COMMAND" in
       fi
       sleep 1
     done
-    die "bitcoind did not answer RPC in 300s — check $DATADIR/$NETWORK/debug.log"
+    die "bitcoind did not answer RPC in 300s — check the debug.log under $DATADIR"
     ;;
 
   stop)   "$KNOTS/bitcoin-cli" "${ARGS[@]}" stop ;;

@@ -18,7 +18,12 @@ pub enum Network {
     /// A private chain on this machine, where the fork height is ours to pick.
     Regtest,
     /// The public test network. BLAKE2b activates at height 150,308.
-    Testnet,
+    ///
+    /// **testnet4**, specifically. There is no `Testnet3` variant because the
+    /// fork does not exist there: `CTestNetParams` sets no `Blake2bHeight`, so
+    /// testnet3 never activates BLAKE2b and there is nothing for this project
+    /// to do on it.
+    Testnet4,
     /// The real one. BLAKE2b activates at height 961,640.
     Mainnet,
 }
@@ -28,7 +33,9 @@ impl Network {
     pub const fn default_rpc_port(self) -> u16 {
         match self {
             Self::Regtest => 18443,
-            Self::Testnet => 18332,
+            // 48332, not testnet3's 18332. Getting this wrong does not fail
+            // cleanly — it connects to whatever else is listening.
+            Self::Testnet4 => 48332,
             Self::Mainnet => 8332,
         }
     }
@@ -37,7 +44,7 @@ impl Network {
     pub const fn datadir_subdirectory(self) -> Option<&'static str> {
         match self {
             Self::Regtest => Some("regtest"),
-            Self::Testnet => Some("testnet3"),
+            Self::Testnet4 => Some("testnet4"),
             Self::Mainnet => None,
         }
     }
@@ -54,7 +61,7 @@ impl Network {
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::Regtest => "regtest",
-            Self::Testnet => "test",
+            Self::Testnet4 => "testnet4",
             Self::Mainnet => "main",
         }
     }
@@ -63,7 +70,7 @@ impl Network {
     pub fn parse(name: &str) -> Option<Self> {
         match name {
             "regtest" => Some(Self::Regtest),
-            "test" | "testnet" => Some(Self::Testnet),
+            "testnet4" | "testnet" => Some(Self::Testnet4),
             "main" | "mainnet" => Some(Self::Mainnet),
             _ => None,
         }

@@ -370,7 +370,7 @@ mod chain {
             // Transcribed from `kernel/chainparams.cpp`, not paraphrased. One
             // byte wrong and the fork block is rejected as `bad-headline`.
             Network::Mainnet => Some(b"8-30 NYPost Deride And Conquer".to_vec()),
-            Network::Testnet => None,
+            Network::Testnet4 => None,
             Network::Regtest => Some(
                 std::env::var("BTCB2_HEADLINE")
                     .unwrap_or_else(|_| "btcb2-miner regtest".to_owned())

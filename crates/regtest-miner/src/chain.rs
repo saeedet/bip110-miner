@@ -28,7 +28,7 @@ pub fn headline(network: node_rpc::Network) -> Option<Vec<u8>> {
         Network::Mainnet => Some(b"8-30 NYPost Deride And Conquer".to_vec()),
 
         // Testnet leaves `Blake2bHeadline` empty.
-        Network::Testnet => None,
+        Network::Testnet4 => None,
 
         // Regtest takes it from `-blake2b_headline`, so it is whatever the
         // config file says. The default here matches `config/btcb2.regtest.conf`;
