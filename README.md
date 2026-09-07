@@ -112,6 +112,11 @@ Measured throughput, `cargo run --release --example hashrate -p mining`:
 | 4 | 19.77 MH/s |
 | 8 | 26.14 MH/s |
 
+The five stages are now checked against real mainnet blocks —
+`crates/btcb2-primitives/tests/mainnet_blocks.rs` reproduces the hashes of five
+of them, including 961,640, the fork block itself, and confirms each meets the
+target it claims.
+
 **As an investment it is close to worthless.** The fork drew about 2.53% miner
 support. One small beta exchange listed it with bids near $82 against asks near
 $190 — a spread over 130%, which is another way of saying it cannot be sold. No
@@ -287,6 +292,41 @@ Its header is now a test vector like any other, read back off the chain. The
 extranonce reads `…0001` then `…0002`: the pool's assigned half followed by the
 miner thread's own, spliced into one 16-byte header field.
 
+## Mainnet, and the honest odds
+
+Synced 2026-09-07 via the `assumeutxo` snapshot at height 910,000 — which is a
+plain *Bitcoin* snapshot, since the chains are identical until 961,632, and
+`loadtxoutset` verifies it against a hash compiled into the binary. Nine GB and
+about ten hours, instead of 810 GB and several days.
+
+The fork boundary, read off the synced chain:
+
+| Height | Header | Difficulty | Mined |
+|---|---|---|---|
+| 961,639 | v1, SHA-256d | 127,479,855,693,691 | 2026-08-28 17:14 |
+| 961,640 | v2, BLAKE2b | **30,393,776** | 2026-08-30 06:14 |
+| 969,578 | v2, BLAKE2b | **285,485,753** | 2026-09-07 23:26 |
+
+The middle row is `Blake2bTargetShift = 22` in one step: 127 trillion to 30
+million, a 4.2-million-fold easing. The bottom row is what eight days of real
+hashpower did to it — a 9.4× climb, and still rising.
+
+### What that means for a laptop
+
+| | Expected time to a block |
+|---|---|
+| 1 thread, 5.31 MH/s | 7,317 years |
+| 6 threads, 23.6 MH/s | 1,646 years |
+| 8 threads, 26.14 MH/s | **1,486 years** |
+| *Bitcoin, 8 threads at 96.6 MH/s* | *179,564,838 years* |
+
+So this chain is about **121,000× better odds** than Bitcoin for the same
+machine — and still a 1,486-year expectation. Both things are true. An earlier
+draft of this README guessed 18 years from an assumed difficulty of 3.5 million;
+the measured figure is eighty times harder, and guessing was the mistake.
+
+Mining is memoryless, so none of that is a countdown. It is a mean.
+
 ## Testing across the fork
 
 The ordinary regtest chain sits above its activation height, so mining on it
@@ -312,7 +352,7 @@ Acceptance is not evidence; agreement is.
 - [x] **3** — Mine a regtest block the node accepts — *and one on each side of the fork*
 - [x] **4** — Split into pool + miner over Stratum V1
 - [x] **5** — testnet4 — *mined block 150,616, accepted by an independent node*
-- [ ] **6** — Mainnet, only after measuring the real difficulty
+- [x] **6** — Mainnet synced via assumeutxo — *difficulty measured, and it is 285 million*
 - [ ] **7** — Extract the `Chain` trait
 
 Phases 0–4 need no chain download at all; regtest generates its own.
