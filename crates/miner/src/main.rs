@@ -26,7 +26,7 @@ mod worker;
 use std::sync::Arc;
 use std::time::Duration;
 
-use btcb2_primitives::{Target, hex};
+use bip110_primitives::{Target, hex};
 use serde_json::{Value, json};
 use stratum::{Incoming, Job, Request, method};
 
@@ -62,7 +62,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     connection.outbound.send(serde_json::to_string(&Request::call(
         1,
         method::SUBSCRIBE,
-        json!(["btcb2-miner/0.1.0"]),
+        json!(["bip110-miner/0.1.0"]),
     ))?)?;
 
     let subscribe_reply = wait_for_response(&connection, 1)?;

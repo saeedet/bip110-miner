@@ -35,7 +35,7 @@
 //! accepting shares that change the block's timestamp, so the check belongs in
 //! the code rather than in a comment.
 
-use btcb2_primitives::hex;
+use bip110_primitives::hex;
 use serde_json::{Value, json};
 
 /// A share submitted by a miner.

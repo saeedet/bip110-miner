@@ -8,7 +8,7 @@
 //!
 //! The consequence is that a datadir mix-up does not fail loudly. Point a
 //! BLAKE2b node at a Bitcoin datadir and it will start, connect, and quietly
-//! disagree about which chain is real. Hence the dedicated `~/.btcb2`.
+//! disagree about which chain is real. Hence the dedicated `~/.bip110`.
 
 use std::path::{Path, PathBuf};
 

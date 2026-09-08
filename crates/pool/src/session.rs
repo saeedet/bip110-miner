@@ -16,7 +16,7 @@ use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 
 use node_rpc::RpcClient;
-use btcb2_primitives::{Target, hex};
+use bip110_primitives::{Target, hex};
 use serde_json::json;
 use stratum::{Incoming, Request, Response, Share, StratumError, method};
 

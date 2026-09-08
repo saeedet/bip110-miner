@@ -1,5 +1,5 @@
 [package]
-name = "btcb2-primitives"
+name = "bip110-primitives"
 version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true

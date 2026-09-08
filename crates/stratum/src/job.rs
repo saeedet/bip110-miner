@@ -61,7 +61,7 @@
 //! bytes fed verbatim into BLAKE2b. Any reordering would have to be undone
 //! before hashing, so the only sane wire form is the order it is hashed in.
 
-use btcb2_primitives::{PowMidstate, Target, hex};
+use bip110_primitives::{PowMidstate, Target, hex};
 use serde_json::{Value, json};
 
 /// Bytes of extranonce the pool assigns to a connection.
@@ -239,7 +239,7 @@ pub enum JobError {
         extranonce2: usize,
     },
     /// The `nbits` field did not decode to a usable target.
-    BadTarget(btcb2_primitives::target::TargetError),
+    BadTarget(bip110_primitives::target::TargetError),
 }
 
 impl From<hex::HexError> for JobError {

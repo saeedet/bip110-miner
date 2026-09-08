@@ -33,7 +33,7 @@
 //! merkle tree, which uses witness-free txids. Both are needed and they are not
 //! interchangeable.
 
-use btcb2_primitives::{BlockHeader, Hash256, Transaction, merkle, varint};
+use bip110_primitives::{BlockHeader, Hash256, Transaction, merkle, varint};
 
 /// A block under construction: a coinbase we built plus transactions the node
 /// handed us as raw bytes.

@@ -55,7 +55,7 @@
 //! hoisting it out of the loop is not an optimisation so much as using the
 //! interface as intended.
 
-use btcb2_primitives::{Hash256, PowMidstate, Target};
+use bip110_primitives::{Hash256, PowMidstate, Target};
 
 /// A point in the 128-bit nonce space.
 ///

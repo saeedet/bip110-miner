@@ -8,7 +8,7 @@
 //! Captured from a synced pruned node on 2026-09-07 with
 //! `getblockheader <hash> false`.
 
-use btcb2_primitives::{BlockHeader, PowMidstate, Target, pow_hash};
+use bip110_primitives::{BlockHeader, PowMidstate, Target, pow_hash};
 
 /// `(height, serialised header, hash as the node reports it)`.
 ///

@@ -31,11 +31,11 @@ pub fn headline(network: node_rpc::Network) -> Option<Vec<u8>> {
         Network::Testnet4 => None,
 
         // Regtest takes it from `-blake2b_headline`, so it is whatever the
-        // config file says. The default here matches `config/btcb2.regtest.conf`;
+        // config file says. The default here matches `config/bip110.regtest.conf`;
         // override it if you change one without the other.
         Network::Regtest => Some(
-            std::env::var("BTCB2_HEADLINE")
-                .unwrap_or_else(|_| "btcb2-miner regtest".to_owned())
+            std::env::var("BIP110_HEADLINE")
+                .unwrap_or_else(|_| "bip110-miner regtest".to_owned())
                 .into_bytes(),
         ),
     }

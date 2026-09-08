@@ -31,7 +31,7 @@
 //! contents. A miner can change its extranonce or payout freely without
 //! recomputing it.
 
-use btcb2_primitives::{Hash256, merkle};
+use bip110_primitives::{Hash256, merkle};
 
 /// The four bytes that mark an `OP_RETURN` output as a witness commitment.
 ///
@@ -89,7 +89,7 @@ pub fn commitment_script(wtxids: &[Hash256]) -> Vec<u8> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use btcb2_primitives::hex;
+    use bip110_primitives::hex;
 
     /// An empty block's commitment, checked against what bitcoind produced.
     ///

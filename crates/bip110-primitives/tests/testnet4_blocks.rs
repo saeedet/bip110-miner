@@ -13,7 +13,7 @@
 //! Captured from a synced node on 2026-09-07 with
 //! `getblockheader <hash> false`; regenerate with `scripts/capture-vectors.sh`.
 
-use btcb2_primitives::{BlockHeader, PowMidstate, pow_hash};
+use bip110_primitives::{BlockHeader, PowMidstate, pow_hash};
 
 /// `(height, serialised header, hash as the node reports it)`.
 ///

@@ -30,9 +30,9 @@
 //! 3. Fill in the v2 header fields consensus dictates — `height` and `txcount`.
 //! 4. Search for a nonce that makes the header's proof of work meet the target.
 
-use btcb2_primitives::header::VERSION_HEADER_V2_FLAG;
-use btcb2_primitives::hex::{self, HexError};
-use btcb2_primitives::{Hash256, Target};
+use bip110_primitives::header::VERSION_HEADER_V2_FLAG;
+use bip110_primitives::hex::{self, HexError};
+use bip110_primitives::{Hash256, Target};
 use serde::Deserialize;
 use std::str::FromStr;
 
@@ -197,7 +197,7 @@ pub enum TemplateError {
     /// A hex field could not be decoded.
     BadHex(HexError),
     /// The `bits` field did not decode to a usable target.
-    BadTarget(btcb2_primitives::target::TargetError),
+    BadTarget(bip110_primitives::target::TargetError),
 }
 
 impl From<HexError> for TemplateError {

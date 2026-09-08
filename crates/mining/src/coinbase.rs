@@ -46,7 +46,7 @@
 //! And after it, an extranonce in the coinbase is still the only way to give
 //! two miners disjoint search spaces without them sharing a header field.
 
-use btcb2_primitives::{OutPoint, Transaction, TxIn, TxOut};
+use bip110_primitives::{OutPoint, Transaction, TxIn, TxOut};
 
 use crate::script::{encode_block_height, push_data};
 use crate::witness;
@@ -219,7 +219,7 @@ mod tests {
     /// node looks for it with a substring search over the whole scriptSig.
     #[test]
     fn headline_appears_verbatim_in_the_script_sig() {
-        let headline = b"btcb2-miner regtest";
+        let headline = b"bip110-miner regtest";
         let script = CoinbaseBuilder::new(10, 5_000_000_000, payout())
             .headline(headline.to_vec())
             .extranonce(vec![0x01, 0x02, 0x03, 0x04])
@@ -237,7 +237,7 @@ mod tests {
     #[test]
     fn headline_is_absent_by_default() {
         let script = CoinbaseBuilder::new(11, 5_000_000_000, payout()).script_sig();
-        assert!(!script.windows(5).any(|w| w == b"btcb2"));
+        assert!(!script.windows(6).any(|w| w == b"bip110"));
     }
 
     /// A headline plus a large extranonce can breach the 100-byte cap, and it

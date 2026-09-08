@@ -64,10 +64,10 @@ impl RpcClient {
     /// This fork kept Bitcoin's RPC ports — 8332 on mainnet, 48332 on
     /// testnet4 — so a machine running a node for *both* chains has a direct
     /// collision, and the second node simply fails to bind. Moving one of them
-    /// is the only fix, and `BTCB2_RPCPORT` is how this client is told which
+    /// is the only fix, and `BIP110_RPCPORT` is how this client is told which
     /// port to use when `rpcport=` has been set in the node's config.
     ///
-    /// It pairs with `BTCB2_DATADIR`, which is read the same way and for the
+    /// It pairs with `BIP110_DATADIR`, which is read the same way and for the
     /// same underlying reason: nothing about this chain's defaults
     /// distinguishes it from Bitcoin's, so both have to be sidestepped
     /// explicitly rather than assumed.
@@ -230,14 +230,14 @@ impl RpcClient {
     }
 }
 
-/// The RPC port from `BTCB2_RPCPORT`, if it is set and parses.
+/// The RPC port from `BIP110_RPCPORT`, if it is set and parses.
 ///
 /// A value that does not parse is ignored rather than fatal: the fallback is
 /// the network's default port, which is what would have been used anyway, and
 /// failing to start a miner over a stray environment variable would be a worse
 /// outcome than connecting to the obvious place.
 fn rpc_port_override() -> Option<u16> {
-    std::env::var("BTCB2_RPCPORT").ok()?.parse().ok()
+    std::env::var("BIP110_RPCPORT").ok()?.parse().ok()
 }
 
 /// Trims a body for inclusion in an error message.

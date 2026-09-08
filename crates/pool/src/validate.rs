@@ -23,7 +23,7 @@
 //! other hardware at this pool later: firmware we did not write should be
 //! verified rather than trusted.
 
-use btcb2_primitives::{BlockHeader, Hash256, hex, pow_hash};
+use bip110_primitives::{BlockHeader, Hash256, hex, pow_hash};
 use node_rpc::RpcClient;
 use stratum::Share;
 

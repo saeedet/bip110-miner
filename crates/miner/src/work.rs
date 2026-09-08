@@ -15,7 +15,7 @@
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use btcb2_primitives::Target;
+use bip110_primitives::Target;
 use stratum::Job;
 
 /// A job together with the connection details needed to work on it.
