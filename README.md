@@ -225,7 +225,22 @@ are 2^128 hashes reachable anyway.
 
 ### Running it
 
-Two processes, real TCP between them:
+One command:
+
+```bash
+./scripts/mine.sh mainnet --threads half
+```
+
+It reads the payout address from `~/.bip110-miner/payout.mainnet` (outside the
+repo, so it never reaches git and never reaches shell history), sets
+`BIP110_RPCPORT` from the network's config, waits for the pool to build a real
+job rather than merely to open a port, and stops both processes on Ctrl-C.
+
+That `BIP110_RPCPORT` step is the main reason the script exists. This chain
+kept Bitcoin's RPC port, so a machine running both nodes has to move one, and
+forgetting to tell the client is this project's sharpest footgun.
+
+Or run the two processes by hand, which is what the script does:
 
 ```bash
 cargo run --release -p pool -- --network regtest
