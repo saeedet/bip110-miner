@@ -15,6 +15,9 @@
 # The file is the convenient option: an address in a shell command ends up in
 # shell history, and so does everything else on that line.
 #
+# The node is started if it is not already running, and is left running
+# afterwards — it is not part of a mining session.
+#
 # Ctrl-C stops the miner and the pool together. Nothing is lost by stopping —
 # mining is memoryless, so an hour now and an hour next month are worth exactly
 # what two hours today would be.
@@ -72,6 +75,26 @@ fi
 # Regtest generates its own throwaway address, so only the real networks need one.
 if [[ -z "$ADDRESS" && "$NETWORK" != "regtest" ]]; then
   die "no payout address. Pass --address, set BIP110_PAYOUT_ADDRESS, or write one to $ADDRESS_FILE"
+fi
+
+# --- The node ------------------------------------------------------------
+#
+# Started if it is not already up, and deliberately NOT stopped on the way out.
+# A node is not part of a mining session: stopping it would drop its peers and
+# leave the chain to go stale, so the next run pays to catch up. The pool and
+# the miner are the session; the node outlives it.
+#
+# Whether the node is *fit* to mine on is not decided here. The pool checks the
+# chain, the sync state, the peer count and the tip's age in one place
+# (crates/pool/src/readiness.rs), and a weaker second opinion here would only
+# give two answers that can drift apart.
+if ! "$REPO_ROOT/scripts/node.sh" cli "$NETWORK" getblockcount >/dev/null 2>&1; then
+  echo "starting the $NETWORK node..."
+  "$REPO_ROOT/scripts/node.sh" start "$NETWORK" >/dev/null 2>&1 \
+    || die "could not start the $NETWORK node — try ./scripts/node.sh start $NETWORK to see why"
+  echo "node up at height $("$REPO_ROOT/scripts/node.sh" cli "$NETWORK" getblockcount)"
+else
+  echo "node already running at height $("$REPO_ROOT/scripts/node.sh" cli "$NETWORK" getblockcount)"
 fi
 
 # --- Build ---------------------------------------------------------------

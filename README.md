@@ -231,10 +231,15 @@ One command:
 ./scripts/mine.sh mainnet --threads half
 ```
 
-It reads the payout address from `~/.bip110-miner/payout.mainnet` (outside the
-repo, so it never reaches git and never reaches shell history), sets
-`BIP110_RPCPORT` from the network's config, waits for the pool to build a real
-job rather than merely to open a port, and stops both processes on Ctrl-C.
+That is the whole thing. It starts the node if it is not already running,
+reads the payout address from `~/.bip110-miner/payout.mainnet` (outside the
+repo, so it reaches neither git nor shell history), sets `BIP110_RPCPORT` from
+the network's config, waits for the pool to build a real job rather than merely
+to open a port, and stops the pool and the miner on Ctrl-C.
+
+The node is deliberately **left running** afterwards. It is not part of a
+mining session: stopping it would drop its peers and let the chain go stale, so
+the next run would pay to catch up.
 
 That `BIP110_RPCPORT` step is the main reason the script exists. This chain
 kept Bitcoin's RPC port, so a machine running both nodes has to move one, and
