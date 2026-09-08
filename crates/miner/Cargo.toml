@@ -7,7 +7,7 @@ license.workspace = true
 description = "The hashing client. Knows nothing about blocks or the node"
 
 [dependencies]
-btcb2-primitives.workspace = true
+bip110-primitives.workspace = true
 mining.workspace = true
 stratum.workspace = true
 serde_json.workspace = true

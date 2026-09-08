@@ -1,4 +1,4 @@
-# Workspace root for btcb2-miner.
+# Workspace root for bip110-miner.
 #
 # A virtual manifest: it defines no package itself, it only groups the crates
 # under crates/ so they share one target/ directory, one lockfile, and one set
@@ -18,7 +18,7 @@ license = "MIT"
 [workspace.dependencies]
 blake2b = { path = "crates/blake2b" }
 sha256 = { path = "crates/sha256" }
-btcb2-primitives = { path = "crates/btcb2-primitives" }
+bip110-primitives = { path = "crates/bip110-primitives" }
 stratum = { path = "crates/stratum" }
 node-rpc = { path = "crates/node-rpc" }
 mining = { path = "crates/mining" }

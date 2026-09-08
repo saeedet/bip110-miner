@@ -4,7 +4,7 @@
 //! argument parsing and setup in the way. Every step here corresponds to
 //! something a real miner does; nothing is skipped because it is regtest.
 
-use btcb2_primitives::{BlockHeader, Hash256, PowMidstate, hex};
+use bip110_primitives::{BlockHeader, Hash256, PowMidstate, hex};
 use mining::{BlockBuilder, CoinbaseBuilder, NonceSpace, search, witness};
 use node_rpc::{BlockTemplate, RpcClient};
 
@@ -90,7 +90,7 @@ pub fn mine(
         payout_script.to_vec(),
     )
     .extranonce(extranonce.to_le_bytes().to_vec())
-    .tag(b"btcb2-miner".to_vec())
+    .tag(b"bip110-miner".to_vec())
     .witness_commitment(commitment_script);
 
     if let Some(headline) = headline
@@ -174,7 +174,7 @@ pub fn mine(
     // A last check against our own code before bothering the node. If these
     // disagree the bug is in serialisation, and the node's rejection reason
     // would be `high-hash` — which points at the search, the wrong place.
-    debug_assert_eq!(btcb2_primitives::pow_hash(&solved), solution.hash);
+    debug_assert_eq!(bip110_primitives::pow_hash(&solved), solution.hash);
 
     let raw_block = builder.serialize(&solved);
 

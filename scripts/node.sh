@@ -4,9 +4,9 @@
 #
 # The binary is Bitcoin Knots built from source, because no package manager
 # ships it and the BLAKE2b proof-of-work only exists in that fork. Point
-# BTCB2_KNOTS at the build if it lives somewhere other than the default.
+# BIP110_KNOTS at the build if it lives somewhere other than the default.
 #
-# A DEDICATED data directory (~/.btcb2) keeps this entirely separate from any
+# A DEDICATED data directory (~/.bip110) keeps this entirely separate from any
 # Bitcoin node on the machine. That matters more than usual here: this fork
 # shares Bitcoin's P2P network and message format, so a datadir mix-up would
 # not fail loudly — it would quietly sync the wrong chain.
@@ -25,13 +25,13 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMMAND="${1:-}"
 NETWORK="${2:-regtest}"
 
-DATADIR="${BTCB2_DATADIR:-$HOME/.btcb2}"
-CONF="$REPO_ROOT/config/btcb2.$NETWORK.conf"
-KNOTS="${BTCB2_KNOTS:-$HOME/Projects/bitcoinknots/build/bin}"
+DATADIR="${BIP110_DATADIR:-$HOME/.bip110}"
+CONF="$REPO_ROOT/config/bip110.$NETWORK.conf"
+KNOTS="${BIP110_KNOTS:-$HOME/Projects/bitcoinknots/build/bin}"
 
 die() { echo "error: $*" >&2; exit 1; }
 
-[[ -x "$KNOTS/bitcoind" ]] || die "no bitcoind at $KNOTS. Build Knots, or set BTCB2_KNOTS."
+[[ -x "$KNOTS/bitcoind" ]] || die "no bitcoind at $KNOTS. Build Knots, or set BIP110_KNOTS."
 [[ -f "$CONF" ]] || die "no config for network '$NETWORK' (expected $CONF)"
 
 ARGS=(-datadir="$DATADIR" -conf="$CONF")

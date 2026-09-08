@@ -7,7 +7,7 @@
 //!
 //! Regenerate with `scripts/capture-vectors.sh` if the chain is rebuilt.
 
-use btcb2_primitives::{BlockHeader, pow_hash};
+use bip110_primitives::{BlockHeader, pow_hash};
 use std::str::FromStr;
 
 fn hex(bytes: &[u8]) -> String {
@@ -113,7 +113,7 @@ fn pow_reproduces_real_block_hashes() {
 /// out — no error, no progress, no block.
 #[test]
 fn nonce_width_follows_the_header_version() {
-    use btcb2_primitives::PowMidstate;
+    use bip110_primitives::PowMidstate;
 
     for (height, raw, _) in BLOCKS {
         let header = BlockHeader::deserialize(&unhex(raw)).expect("parses");
@@ -132,7 +132,7 @@ fn nonce_width_follows_the_header_version() {
 /// them in.
 #[test]
 fn pre_fork_hashing_ignores_the_v2_nonce_words() {
-    use btcb2_primitives::PowMidstate;
+    use bip110_primitives::PowMidstate;
 
     let (_, raw, expected) = BLOCKS.iter().find(|(h, _, _)| *h == 8).expect("block 8");
     let header = BlockHeader::deserialize(&unhex(raw)).expect("parses");
@@ -155,7 +155,7 @@ fn pre_fork_hashing_ignores_the_v2_nonce_words() {
 /// thousands of nonces run against them.
 #[test]
 fn midstate_reuse_matches_the_one_shot_path() {
-    use btcb2_primitives::PowMidstate;
+    use bip110_primitives::PowMidstate;
 
     let (_, raw, expected) = BLOCKS.iter().find(|(h, _, _)| *h == 10).expect("block 10");
     let header = BlockHeader::deserialize(&unhex(raw)).expect("parses");
@@ -194,6 +194,6 @@ fn truncated_headers_are_rejected() {
 #[test]
 fn hash_display_round_trips() {
     let (_, _, expected) = BLOCKS.last().expect("at least one block");
-    let hash = btcb2_primitives::Hash256::from_str(expected).expect("valid hash");
+    let hash = bip110_primitives::Hash256::from_str(expected).expect("valid hash");
     assert_eq!(hash.to_string(), *expected);
 }

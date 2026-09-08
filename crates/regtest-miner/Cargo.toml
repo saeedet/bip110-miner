@@ -7,7 +7,7 @@ license.workspace = true
 description = "Mines blocks on a local regtest chain, end to end"
 
 [dependencies]
-btcb2-primitives.workspace = true
+bip110-primitives.workspace = true
 node-rpc.workspace = true
 mining.workspace = true
 

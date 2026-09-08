@@ -2,7 +2,7 @@
 #
 # capture-vectors.sh — regenerate the real-block test vectors.
 #
-# The tests in crates/btcb2-primitives/tests/real_blocks.rs hold headers pulled
+# The tests in crates/bip110-primitives/tests/real_blocks.rs hold headers pulled
 # off a live chain. Regtest chains do not survive a datadir wipe, so this
 # regenerates them rather than leaving the tests pinned to a chain that no
 # longer exists.
@@ -20,7 +20,7 @@ cd "$REPO_ROOT"
 
 FROM="${1:-8}"
 TO="${2:-14}"
-OUT="crates/btcb2-primitives/tests/real_blocks.rs"
+OUT="crates/bip110-primitives/tests/real_blocks.rs"
 
 ./scripts/node.sh cli regtest getblockcount > /dev/null 2>&1 \
   || { echo "error: no regtest node. Start one with ./scripts/node.sh start regtest" >&2; exit 1; }

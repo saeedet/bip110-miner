@@ -3,16 +3,16 @@
 version = 4
 
 [[package]]
-name = "blake2b"
-version = "0.1.0"
-
-[[package]]
-name = "btcb2-primitives"
+name = "bip110-primitives"
 version = "0.1.0"
 dependencies = [
  "blake2b",
  "sha256",
 ]
+
+[[package]]
+name = "blake2b"
+version = "0.1.0"
 
 [[package]]
 name = "itoa"
@@ -30,7 +30,7 @@ checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
 name = "miner"
 version = "0.1.0"
 dependencies = [
- "btcb2-primitives",
+ "bip110-primitives",
  "mining",
  "serde_json",
  "stratum",
@@ -40,14 +40,14 @@ dependencies = [
 name = "mining"
 version = "0.1.0"
 dependencies = [
- "btcb2-primitives",
+ "bip110-primitives",
 ]
 
 [[package]]
 name = "node-rpc"
 version = "0.1.0"
 dependencies = [
- "btcb2-primitives",
+ "bip110-primitives",
  "serde",
  "serde_json",
 ]
@@ -56,7 +56,7 @@ dependencies = [
 name = "pool"
 version = "0.1.0"
 dependencies = [
- "btcb2-primitives",
+ "bip110-primitives",
  "mining",
  "node-rpc",
  "serde_json",
@@ -85,7 +85,7 @@ dependencies = [
 name = "regtest-miner"
 version = "0.1.0"
 dependencies = [
- "btcb2-primitives",
+ "bip110-primitives",
  "mining",
  "node-rpc",
 ]
@@ -141,7 +141,7 @@ version = "0.1.0"
 name = "stratum"
 version = "0.1.0"
 dependencies = [
- "btcb2-primitives",
+ "bip110-primitives",
  "serde",
  "serde_json",
 ]

@@ -21,17 +21,17 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-KNOTS="${BTCB2_KNOTS:-$HOME/Projects/bitcoinknots/build/bin}"
+KNOTS="${BIP110_KNOTS:-$HOME/Projects/bitcoinknots/build/bin}"
 HEADLINE="fork crossing test"
 FORK_HEIGHT=5
 BLOCKS=8
 
 die() { echo "error: $*" >&2; exit 1; }
 
-[[ -x "$KNOTS/bitcoind" ]] || die "no bitcoind at $KNOTS (set BTCB2_KNOTS)"
+[[ -x "$KNOTS/bitcoind" ]] || die "no bitcoind at $KNOTS (set BIP110_KNOTS)"
 
 WORK="$(mktemp -d)"
-CONF="$WORK/btcb2.conf"
+CONF="$WORK/bip110.conf"
 DATADIR="$WORK/datadir"
 mkdir -p "$DATADIR"
 
@@ -50,7 +50,7 @@ trap cleanup EXIT
 # the activation height lowered and the headline made explicit.
 sed -e "s/testactivationheight=blake2b@[0-9]*/testactivationheight=blake2b@$FORK_HEIGHT/" \
     -e "s/^blake2b_headline=.*/blake2b_headline=$HEADLINE/" \
-    "$REPO_ROOT/config/btcb2.regtest.conf" > "$CONF"
+    "$REPO_ROOT/config/bip110.regtest.conf" > "$CONF"
 
 cli() { "$KNOTS/bitcoin-cli" -datadir="$DATADIR" -conf="$CONF" "$@"; }
 
@@ -67,7 +67,7 @@ cli getblockcount >/dev/null 2>&1 || die "the node never answered RPC"
 # computed. Comparing them is the whole point — a miner can be wrong about the
 # algorithm and still have a block accepted, because on regtest roughly half of
 # all hashes meet the target anyway.
-BTCB2_DATADIR="$DATADIR" BTCB2_HEADLINE="$HEADLINE" \
+BIP110_DATADIR="$DATADIR" BIP110_HEADLINE="$HEADLINE" \
   "$REPO_ROOT/target/release/regtest-miner" "$BLOCKS" \
   | tee "$WORK/mined.txt"
 

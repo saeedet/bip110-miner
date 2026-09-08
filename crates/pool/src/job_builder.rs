@@ -17,7 +17,7 @@
 //!
 //! That absence is the clearest single measure of what the hardfork bought.
 
-use btcb2_primitives::{BlockHeader, Hash256, PowMidstate, Target, hex};
+use bip110_primitives::{BlockHeader, Hash256, PowMidstate, Target, hex};
 use mining::{BlockBuilder, CoinbaseBuilder, witness};
 use node_rpc::BlockTemplate;
 use stratum::Job;
@@ -86,7 +86,7 @@ pub fn build(
         template.coinbase_value,
         payout_script.to_vec(),
     )
-    .tag(b"btcb2-miner".to_vec())
+    .tag(b"bip110-miner".to_vec())
     .witness_commitment(witness_commitment);
 
     if let Some(headline) = headline {

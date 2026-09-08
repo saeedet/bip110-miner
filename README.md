@@ -1,4 +1,4 @@
-# btcb2-miner
+# bip110-miner
 
 A solo miner for the **BIP-110 / BLAKE2b Bitcoin hard fork** (ticker BTCB2),
 written from scratch in Rust, running against a local node.
@@ -57,7 +57,7 @@ still `f9beb4d9` on 8333, testnet4 still `1c163f28` on 48333, and both use
 Bitcoin's own DNS seeds. Nodes on either side of the fork therefore meet
 constantly, and a datadir mix-up does not fail loudly — it produces a node that
 starts, connects, and quietly disagrees about which chain is real. Hence the
-dedicated `~/.btcb2`.
+dedicated `~/.bip110`.
 
 What keeps the two apart is a **service bit**, `NODE_BLAKE2B = 1 << 28`. Knots
 prefers peers advertising it for the first outbound-full-relay slots, demotes
@@ -113,7 +113,7 @@ Measured throughput, `cargo run --release --example hashrate -p mining`:
 | 8 | 26.14 MH/s |
 
 The five stages are now checked against real mainnet blocks —
-`crates/btcb2-primitives/tests/mainnet_blocks.rs` reproduces the hashes of five
+`crates/bip110-primitives/tests/mainnet_blocks.rs` reproduces the hashes of five
 of them, including 961,640, the fork block itself, and confirms each meets the
 target it claims.
 
@@ -138,25 +138,13 @@ knots node (BLAKE2b)  ──JSON-RPC──▶  pool  ──Stratum V1──▶  
 |---|---|
 | `blake2b` | BLAKE2b. Readable reference impl + optimised one, tested against each other |
 | `sha256` | SHA-256 and BIP340 tagged hashes — the PoW needs three of them. Portable from the sibling project, where it is already tested against real block headers |
-| `btcb2-primitives` | Both header formats and **both** proof-of-work algorithms — SHA-256d below the fork height, the five-stage BLAKE2b pipeline above it. Merkle trees, transactions, targets. Pure, no I/O |
+| `bip110-primitives` | Both header formats and **both** proof-of-work algorithms — SHA-256d below the fork height, the five-stage BLAKE2b pipeline above it. Merkle trees, transactions, targets. Pure, no I/O |
 | `node-rpc` | Typed JSON-RPC for `getblocktemplate` / `submitblock`. Cookie auth; hand-rolled HTTP and base64 |
 | `mining` | Coinbase construction, block assembly, nonce search. Pure, no I/O |
 | `regtest-miner` | End-to-end miner for a local regtest chain, both sides of the fork |
 | `stratum` | Stratum V1 wire types, shared by pool and miner so they cannot disagree |
 | `pool` | The solo pool: a node on one side, Stratum on the other |
 | `miner` | The hashing client. Knows nothing about blocks or the node |
-
-## On making it generic
-
-The eventual goal is one miner that handles Bitcoin, BTCB2, and whatever comes
-next. That means a `Chain` trait owning the header type, the PoW function, and
-the nonce layout, with everything else — RPC, merkle trees, transactions,
-Stratum framing, threading, stats — shared.
-
-It is deliberately **not** the first step. Designing an abstraction from two
-chains, one of which is unwritten, produces a trait that fits neither. This
-project builds BTCB2 concretely first and extracts the seam afterwards, from
-differences actually encountered rather than imagined.
 
 ## What mining this chain actually requires
 
@@ -348,11 +336,10 @@ Acceptance is not evidence; agreement is.
 
 - [x] **0** — Toolchains, repo skeleton, BLAKE2b regtest node running
 - [x] **1** — `blake2b` + `sha256`: RFC 7693 vectors, BIP340 tagged hashes, and the full PoW pipeline reproducing real block hashes
-- [x] **2** — `btcb2-primitives`: the 164-byte header, and the PoW reproducing real block hashes
+- [x] **2** — `bip110-primitives`: the 164-byte header, and the PoW reproducing real block hashes
 - [x] **3** — Mine a regtest block the node accepts — *and one on each side of the fork*
 - [x] **4** — Split into pool + miner over Stratum V1
 - [x] **5** — testnet4 — *mined block 150,616, accepted by an independent node*
 - [x] **6** — Mainnet synced via assumeutxo — *difficulty measured, and it is 285 million*
-- [ ] **7** — Extract the `Chain` trait
 
 Phases 0–4 need no chain download at all; regtest generates its own.

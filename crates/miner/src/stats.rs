@@ -16,7 +16,7 @@ use std::sync::Mutex;
 use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 use std::time::Instant;
 
-use btcb2_primitives::Hash256;
+use bip110_primitives::Hash256;
 
 /// Counters shared by every mining thread.
 pub struct Stats {

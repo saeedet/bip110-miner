@@ -7,7 +7,7 @@ license.workspace = true
 description = "Stratum V1 wire types, shared by the pool and the miner"
 
 [dependencies]
-btcb2-primitives.workspace = true
+bip110-primitives.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 

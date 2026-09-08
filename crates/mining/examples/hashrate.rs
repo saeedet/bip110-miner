@@ -15,7 +15,7 @@
 
 use std::time::Instant;
 
-use btcb2_primitives::{BlockHeader, Hash256, PowMidstate, Target};
+use bip110_primitives::{BlockHeader, Hash256, PowMidstate, Target};
 use mining::{NonceSpace, search};
 
 /// Hashes per thread per measurement.
@@ -68,7 +68,9 @@ fn main() {
     for (label, difficulty) in [
         ("testnet4 minimum (difficulty 1)", 1.0),
         ("testnet4 real difficulty", 1.66e9),
-        ("BTCB2 mainnet, early September 2026", 3.5e6),
+        // Measured off a synced node on 2026-09-07, not assumed. An earlier
+        // version of this table guessed 3.5e6 and was eighty times optimistic.
+        ("BIP-110 mainnet at height 969,578", 285_485_753.0),
     ] {
         // p = 1 / (difficulty * 2^32), so the expected number of hashes is the
         // reciprocal. Mining is memoryless: this is a mean, not a countdown,

@@ -10,7 +10,7 @@
 //! push those jobs through JSON, rebuild a miner-side midstate from what comes
 //! out, and compare against the hash the node stored.
 
-use btcb2_primitives::{BlockHeader, PowMidstate, pow_hash};
+use bip110_primitives::{BlockHeader, PowMidstate, pow_hash};
 use stratum::Job;
 use stratum::job::{EXTRANONCE1_SIZE, EXTRANONCE2_SIZE};
 

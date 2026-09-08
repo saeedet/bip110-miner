@@ -14,20 +14,20 @@
 //! Every consensus rule that applies on mainnet applies here too. A block this
 //! accepts is wrong in no way that regtest is lenient about — including the
 //! two rules the fork added, which is why the activation height is set to 10
-//! in `config/btcb2.regtest.conf` rather than left at its default. A chain
+//! in `config/bip110.regtest.conf` rather than left at its default. A chain
 //! mined from genesis therefore crosses the fork, and the code that handles
 //! the crossing is exercised rather than assumed.
 
 mod chain;
 mod round;
 
-use btcb2_primitives::hex;
+use bip110_primitives::hex;
 use mining::NonceSpace;
 use node_rpc::{Network, RpcClient};
 use std::path::PathBuf;
 
 /// The wallet used to generate a throwaway payout address on regtest.
-const WALLET_NAME: &str = "btcb2-miner-regtest";
+const WALLET_NAME: &str = "bip110-miner-regtest";
 
 fn main() {
     if let Err(error) = run() {
@@ -147,8 +147,8 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
 
 /// Where the node keeps its data. Matches `scripts/node.sh`.
 fn datadir() -> PathBuf {
-    std::env::var("BTCB2_DATADIR").map_or_else(
-        |_| PathBuf::from(std::env::var("HOME").expect("HOME is set")).join(".btcb2"),
+    std::env::var("BIP110_DATADIR").map_or_else(
+        |_| PathBuf::from(std::env::var("HOME").expect("HOME is set")).join(".bip110"),
         PathBuf::from,
     )
 }

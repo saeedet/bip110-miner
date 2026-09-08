@@ -35,7 +35,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
-use btcb2_primitives::hex;
+use bip110_primitives::hex;
 use node_rpc::{Network, RpcClient};
 use stratum::{Request, method};
 
@@ -241,7 +241,7 @@ fn poll_templates(
                                 if let Some(window) = window {
                                     let ahead = window.seconds_ahead_of(unix_now());
                                     let difficulty =
-                                        btcb2_primitives::Target::difficulty(job.job.bits);
+                                        bip110_primitives::Target::difficulty(job.job.bits);
                                     if ahead > 0 {
                                         println!(
                                             "  minimum difficulty ({difficulty:.0}) — stamping \
@@ -261,7 +261,7 @@ fn poll_templates(
                                     "DIFFICULTY CHANGED at height {height} — job {} \
                                      (difficulty {:.4}, {} miners)",
                                     job.job.job_id,
-                                    btcb2_primitives::Target::difficulty(job.job.bits),
+                                    bip110_primitives::Target::difficulty(job.job.bits),
                                     state.subscriber_count(),
                                 );
                             }
@@ -368,7 +368,7 @@ fn resolve_payout_script(
     let address = match &options.address {
         Some(address) => address.clone(),
         None if options.network == Network::Regtest => {
-            const WALLET: &str = "btcb2-miner-regtest";
+            const WALLET: &str = "bip110-miner-regtest";
             client.ensure_wallet(WALLET)?;
             client.get_new_address(WALLET)?
         }
@@ -423,8 +423,8 @@ mod chain {
             Network::Mainnet => Some(b"8-30 NYPost Deride And Conquer".to_vec()),
             Network::Testnet4 => None,
             Network::Regtest => Some(
-                std::env::var("BTCB2_HEADLINE")
-                    .unwrap_or_else(|_| "btcb2-miner regtest".to_owned())
+                std::env::var("BIP110_HEADLINE")
+                    .unwrap_or_else(|_| "bip110-miner regtest".to_owned())
                     .into_bytes(),
             ),
         }
@@ -475,8 +475,8 @@ impl Options {
             network,
             listen: listen.parse()?,
             address,
-            datadir: std::env::var("BTCB2_DATADIR").map_or_else(
-                |_| PathBuf::from(std::env::var("HOME").expect("HOME is set")).join(".btcb2"),
+            datadir: std::env::var("BIP110_DATADIR").map_or_else(
+                |_| PathBuf::from(std::env::var("HOME").expect("HOME is set")).join(".bip110"),
                 PathBuf::from,
             ),
         })

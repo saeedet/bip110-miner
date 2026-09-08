@@ -165,7 +165,7 @@ impl RpcClient {
     /// # A hazard specific to this fork
     ///
     /// This chain kept Bitcoin's address format *and* its network magic, so a
-    /// Bitcoin address validates here and a BTCB2 address validates on
+    /// Bitcoin address validates here and an address for this chain validates on
     /// Bitcoin. This call proves an address is well-formed for the network;
     /// it cannot prove you meant to mine this chain rather than the other one.
     pub fn validate_address(&self, address: &str) -> Result<AddressInfo, RpcError> {
