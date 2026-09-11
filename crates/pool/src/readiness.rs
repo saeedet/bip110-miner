@@ -44,6 +44,22 @@ use node_rpc::{BlockchainInfo, Network};
 /// Deliberately generous — see the module docs.
 const MAX_TIP_AGE: i64 = 3 * 60 * 60;
 
+/// How many blocks behind its own headers a node may be and still count as
+/// caught up.
+///
+/// Not a fudge factor. `headers > blocks` is the **normal** state of a healthy
+/// node: a header arrives, and for as long as it takes to download and validate
+/// the block, the two counters differ. Treating any gap as "syncing" therefore
+/// flags a node as unfit several times an hour, once per block.
+///
+/// That was a real outage here. This project's node shares block-download
+/// bandwidth with the background chainstate validating history behind an
+/// assumeutxo snapshot, which stretches the gap from milliseconds to seconds —
+/// long enough for a periodic check to land inside it. The pool treated that as
+/// fatal and exited, so mining stopped every few hours for a condition that
+/// resolves on its own.
+const AT_TIP_TOLERANCE: u32 = 2;
+
 /// Why a node is not fit to mine on.
 #[derive(Debug)]
 pub enum NotReady {
@@ -54,8 +70,19 @@ pub enum NotReady {
         /// What it is running.
         found: String,
     },
-    /// The node has not finished its initial sync.
-    Syncing {
+    /// The node says it is still in initial block download.
+    ///
+    /// Separate from [`Self::BehindHeaders`] because the two read very
+    /// differently in a log. A node reporting IBD with `blocks == headers` is
+    /// not "syncing 1578 of 1578" — it has everything it knows about and is
+    /// waiting to decide it is caught up, usually because its tip is older than
+    /// the 24-hour threshold Core uses.
+    InitialBlockDownload {
+        /// Blocks validated.
+        blocks: u32,
+    },
+    /// The node has headers it has not yet validated blocks for.
+    BehindHeaders {
         /// Blocks validated.
         blocks: u32,
         /// Headers known.
@@ -76,10 +103,18 @@ impl std::fmt::Display for NotReady {
             Self::WrongNetwork { wanted, found } => {
                 write!(f, "asked for {wanted} but the node is running {found}")
             }
-            Self::Syncing { blocks, headers } => write!(
+            Self::InitialBlockDownload { blocks } => write!(
                 f,
-                "the node is still syncing ({blocks} of {headers} blocks) — \
-                 mining now would build on a stale tip"
+                "the node reports initial block download at height {blocks}. It has every \
+                 block it knows of, so this usually means its tip is older than the \
+                 24-hour threshold Core uses to call itself caught up — mine a block, or \
+                 wait for a peer to send one"
+            ),
+            Self::BehindHeaders { blocks, headers } => write!(
+                f,
+                "the node is {} blocks behind its own headers ({blocks} of {headers}) — \
+                 mining now would build on a stale tip",
+                headers.saturating_sub(*blocks),
             ),
             Self::NoPeers => write!(
                 f,
@@ -115,8 +150,12 @@ pub fn check(
         });
     }
 
-    if info.initial_block_download || info.headers > info.blocks {
-        return Err(NotReady::Syncing {
+    if info.initial_block_download {
+        return Err(NotReady::InitialBlockDownload { blocks: info.blocks });
+    }
+
+    if info.headers.saturating_sub(info.blocks) > AT_TIP_TOLERANCE {
+        return Err(NotReady::BehindHeaders {
             blocks: info.blocks,
             headers: info.headers,
         });
@@ -212,11 +251,57 @@ mod tests {
     #[test]
     fn still_syncing_is_caught_by_either_signal() {
         let by_flag = info("main", 900_000, 900_000, true, NOW as u64);
-        assert!(matches!(check(Network::Mainnet, &by_flag, 8, NOW), Err(NotReady::Syncing { .. })));
+        assert!(matches!(
+            check(Network::Mainnet, &by_flag, 8, NOW),
+            Err(NotReady::InitialBlockDownload { .. })
+        ));
 
-        // Headers ahead of blocks, with the flag already latched false.
+        // Headers well ahead of blocks, with the flag already latched false.
         let by_count = info("main", 899_000, 900_000, false, NOW as u64);
-        assert!(matches!(check(Network::Mainnet, &by_count, 8, NOW), Err(NotReady::Syncing { .. })));
+        assert!(matches!(
+            check(Network::Mainnet, &by_count, 8, NOW),
+            Err(NotReady::BehindHeaders { .. })
+        ));
+    }
+
+    /// The two must not be confused, because their messages send a reader
+    /// somewhere different. "1578 of 1578 blocks" read as a sync gap is
+    /// nonsense; as an IBD flag on an old tip it is exactly the problem.
+    #[test]
+    fn ibd_with_no_gap_is_reported_as_ibd() {
+        let node = info("main", 1578, 1578, true, NOW as u64);
+
+        let Err(reason) = check(Network::Mainnet, &node, 8, NOW) else {
+            panic!("a node in IBD is not fit to mine on");
+        };
+        assert!(matches!(reason, NotReady::InitialBlockDownload { .. }));
+        assert!(
+            !reason.to_string().contains("1578 of 1578"),
+            "must not render an absent gap as though it were one: {reason}"
+        );
+    }
+
+    /// The regression this tolerance exists for.
+    ///
+    /// A node one block behind its headers is mid-validation, not syncing, and
+    /// that is the state it is in for a moment after every block the network
+    /// finds. Flagging it stopped the pool several times a day.
+    #[test]
+    fn a_node_a_block_or_two_behind_is_still_at_the_tip() {
+        for gap in 0..=AT_TIP_TOLERANCE {
+            let node = info("main", 900_000 - gap, 900_000, false, NOW as u64 - 300);
+            assert!(
+                check(Network::Mainnet, &node, 8, NOW).is_ok(),
+                "a {gap}-block gap should not count as syncing"
+            );
+        }
+
+        // One past the tolerance does still count, so the check keeps its teeth.
+        let node = info("main", 900_000 - (AT_TIP_TOLERANCE + 1), 900_000, false, NOW as u64 - 300);
+        assert!(matches!(
+            check(Network::Mainnet, &node, 8, NOW),
+            Err(NotReady::BehindHeaders { .. })
+        ));
     }
 
     #[test]
