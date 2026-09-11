@@ -63,6 +63,20 @@ const MAX_TEMPLATE_OUTAGE: Duration = Duration::from_secs(120);
 /// How often to re-examine whether the node is still worth mining on.
 const READINESS_INTERVAL: Duration = Duration::from_secs(60);
 
+/// How long the node may be unfit to mine on before the pool gives up.
+///
+/// Unreadiness is usually **temporary**: a node that has just started, or that
+/// briefly fell behind its own headers, is catching up and will be fine in
+/// seconds or minutes. Treating the first failed check as fatal — which this
+/// pool used to — turned every such moment into a stopped miner needing a
+/// manual restart.
+///
+/// So a failed check now pauses job building and keeps watching. Half an hour
+/// is long enough to ride out a restart catching up on a few hundred blocks,
+/// and short enough that a genuinely broken node does not leave miners grinding
+/// a dead job all night.
+const MAX_UNREADY: Duration = Duration::from_secs(30 * 60);
+
 fn main() {
     if let Err(error) = run() {
         eprintln!("error: {error}");
@@ -85,9 +99,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     // whether the node finished syncing: that answer is latched to false and
     // never revisited, so a node that later loses every peer still claims to be
     // caught up. See the `readiness` module.
-    let info = client.get_blockchain_info()?;
-    let peers = client.get_connection_count()?;
-    readiness::check(options.network, &info, peers, unix_now())?;
+    let (info, peers) = wait_until_ready(&client, options.network)?;
 
     let payout_script = resolve_payout_script(&client, &options)?;
     let headline = chain::headline(options.network);
@@ -158,8 +170,29 @@ fn poll_templates(
     let mut last_job_installed = std::time::Instant::now();
     let mut last_readiness_check = std::time::Instant::now();
     let mut announced_ready = false;
+    // When the node first became unfit, and whether we have said so. `None`
+    // means fit.
+    let mut unready_since: Option<std::time::Instant> = None;
+    let mut announced_unready = false;
 
     loop {
+        // Paused: the node is not fit to mine on, so a template from it would
+        // build on a parent the network has moved past. Skip the fetch entirely
+        // rather than hand miners work that is known to be wasted.
+        if unready_since.is_some() {
+            if wakeups.recv_timeout(POLL_INTERVAL).is_ok() {
+                while wakeups.try_recv().is_ok() {}
+            }
+            recheck_readiness(
+                client,
+                network,
+                &mut last_readiness_check,
+                &mut unready_since,
+                &mut announced_unready,
+            );
+            continue;
+        }
+
         match client.get_block_template() {
             Ok(template) => {
                 let tip = template.previous_block_hash.clone();
@@ -308,20 +341,20 @@ fn poll_templates(
         // Readiness is not a one-time property. A node whose peers are all
         // connected and useless will happily serve templates for a tip that
         // stopped moving hours ago; only re-checking the tip's age catches that.
-        if last_readiness_check.elapsed() >= READINESS_INTERVAL {
-            last_readiness_check = std::time::Instant::now();
+        recheck_readiness(
+            client,
+            network,
+            &mut last_readiness_check,
+            &mut unready_since,
+            &mut announced_unready,
+        );
 
-            match (client.get_blockchain_info(), client.get_connection_count()) {
-                (Ok(info), Ok(peers)) => {
-                    if let Err(reason) = readiness::check(network, &info, peers, unix_now()) {
-                        eprintln!("\nFATAL: the node is no longer fit to mine on — {reason}");
-                        std::process::exit(1);
-                    }
-                }
-                // A failure to ask is not a failure of the node; the outage
-                // timer above is what handles an unreachable one.
-                _ => eprintln!("cannot re-check node readiness"),
-            }
+        // While paused, do not let the template-outage timer fire. It exists to
+        // catch a node that has silently stopped serving work; a node we have
+        // deliberately stopped asking is not that, and letting it trip here
+        // would reintroduce the very exit this pause replaced.
+        if unready_since.is_some() {
+            last_job_installed = std::time::Instant::now();
         }
 
         // Sleep, but wake early if a session tells us the tip moved. Draining
@@ -348,6 +381,95 @@ fn is_fork_block(
 
     let parent = client.get_block_header(&template.previous_block_hash)?;
     Ok(!parent.is_header_v2())
+}
+
+/// Blocks until the node is fit to mine on, or gives up after [`MAX_UNREADY`].
+///
+/// A node that has just been started — which `scripts/mine.sh` does — has its
+/// headers long before it has the blocks under them, so it is briefly unfit
+/// through no fault of its own. Failing immediately there made starting the
+/// miner a coin toss; waiting makes it deterministic.
+fn wait_until_ready(
+    client: &RpcClient,
+    network: Network,
+) -> Result<(node_rpc::BlockchainInfo, u32), Box<dyn std::error::Error>> {
+    let started = std::time::Instant::now();
+    let mut announced = false;
+
+    loop {
+        let info = client.get_blockchain_info()?;
+        let peers = client.get_connection_count()?;
+
+        match readiness::check(network, &info, peers, unix_now()) {
+            Ok(()) => return Ok((info, peers)),
+            Err(reason) => {
+                if started.elapsed() >= MAX_UNREADY {
+                    return Err(format!(
+                        "the node was still unfit to mine on after {} minutes — {reason}",
+                        started.elapsed().as_secs() / 60
+                    )
+                    .into());
+                }
+                if !announced {
+                    announced = true;
+                    println!("waiting for the node: {reason}");
+                }
+                std::thread::sleep(Duration::from_secs(2));
+            }
+        }
+    }
+}
+
+/// Re-checks readiness on a schedule, pausing or resuming as it changes.
+///
+/// Shared by the paused branch and the normal path so the two cannot disagree
+/// about when a pause starts, ends, or becomes fatal.
+fn recheck_readiness(
+    client: &RpcClient,
+    network: Network,
+    last_check: &mut std::time::Instant,
+    unready_since: &mut Option<std::time::Instant>,
+    announced_unready: &mut bool,
+) {
+    if last_check.elapsed() < READINESS_INTERVAL {
+        return;
+    }
+    *last_check = std::time::Instant::now();
+
+    let (Ok(info), Ok(peers)) = (client.get_blockchain_info(), client.get_connection_count())
+    else {
+        // A failure to ask is not a failure of the node; the template-outage
+        // timer is what handles an unreachable one.
+        eprintln!("cannot re-check node readiness");
+        return;
+    };
+
+    match readiness::check(network, &info, peers, unix_now()) {
+        Err(reason) => {
+            let since = unready_since.get_or_insert_with(std::time::Instant::now);
+            if since.elapsed() >= MAX_UNREADY {
+                eprintln!(
+                    "\nFATAL: the node has been unfit to mine on for {} minutes — {reason}",
+                    since.elapsed().as_secs() / 60,
+                );
+                std::process::exit(1);
+            }
+            // Said once per spell, not once per check, so a long catch-up does
+            // not bury the log.
+            if !*announced_unready {
+                *announced_unready = true;
+                println!("\npausing: {reason}");
+                println!("  waiting for the node — will resume on its own");
+            }
+        }
+        Ok(()) => {
+            if *announced_unready {
+                println!("node is fit to mine on again — resuming\n");
+            }
+            *announced_unready = false;
+            *unready_since = None;
+        }
+    }
 }
 
 /// Seconds since the Unix epoch.

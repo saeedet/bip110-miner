@@ -19,6 +19,7 @@
 //! port.
 
 mod connection;
+mod lifetime;
 mod stats;
 mod work;
 mod worker;
@@ -30,6 +31,7 @@ use bip110_primitives::{Target, hex};
 use serde_json::{Value, json};
 use stratum::{Incoming, Job, Request, method};
 
+use lifetime::Lifetime;
 use stats::Stats;
 use work::{Work, WorkState};
 
@@ -162,12 +164,36 @@ fn si(count: u64) -> String {
     format!("{count}")
 }
 
-/// Prints a status line every [`REPORT_INTERVAL`].
+/// Formats a Unix timestamp as `HH:MM:SS` in UTC.
 ///
-/// Runs on its own thread so the mining threads never spend time on formatting,
-/// and so the interval stays honest regardless of batch length.
+/// UTC rather than local time, deliberately: a log line that cannot be matched
+/// against a block's timestamp is less useful than one that can, and block
+/// timestamps are UTC.
+fn clock(unix: u64) -> String {
+    let seconds_today = unix % 86_400;
+    format!(
+        "{:02}:{:02}:{:02}",
+        seconds_today / 3600,
+        (seconds_today % 3600) / 60,
+        seconds_today % 60,
+    )
+}
+
+/// Prints a status block every [`REPORT_INTERVAL`], and keeps the lifetime
+/// totals up to date.
+///
+/// Runs on its own thread so the mining threads never spend time on formatting
+/// or disk I/O, and so the interval stays honest regardless of batch length.
 fn report_forever(stats: &Stats, state: &WorkState) {
+    let mut lifetime = Lifetime::load(&lifetime::default_path());
     let mut folded_in = 0u64;
+
+    println!(
+        "lifetime so far: {} hashes over {} sessions, best {} zero bits\n",
+        si(lifetime.total_hashes),
+        lifetime.sessions,
+        lifetime.best_zero_bits,
+    );
 
     loop {
         std::thread::sleep(REPORT_INTERVAL);
@@ -178,20 +204,58 @@ fn report_forever(stats: &Stats, state: &WorkState) {
 
         let (best, zero_bits) = stats.best();
 
-        // The leading-zero threshold the target actually demands. Reporting a
-        // best-hash figure without the bar it is measured against invites the
-        // wrong reading entirely: 36 of 79 looks like halfway and is in fact
-        // 2^43 — some eight trillion times — too easy.
-        let needed = state
-            .snapshot()
-            .map_or(0, |(work, _)| work.target.leading_zero_bits());
+        lifetime.record(recent, best, zero_bits);
+        if let Err(error) = lifetime.save() {
+            eprintln!("warning: cannot save lifetime totals: {error}");
+        }
+
+        // The difficulty being mined and the leading-zero threshold that goes
+        // with it. Reporting a best-hash figure without the bar it is measured
+        // against invites the wrong reading entirely.
+        let (difficulty, needed) = state.snapshot().map_or((0.0, 0), |(work, _)| {
+            (
+                bip110_primitives::Target::difficulty(work.job.bits),
+                work.target.leading_zero_bits(),
+            )
+        });
+
+        // A ruled line per report, so a log read hours later separates into
+        // blocks instead of one undifferentiated column of numbers.
+        println!(
+            "{} {} UTC",
+            "─".repeat(52),
+            clock(
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .map_or(0, |d| d.as_secs())
+            ),
+        );
 
         println!(
-            "{:>7.2} MH/s (avg {:>6.2})   session {:>8}   best {zero_bits}/{needed} bits   {best}",
+            "  {:>7.2} MH/s (avg {:>6.2})   session {:>8}   best {zero_bits}/{needed} bits",
             recent as f64 / REPORT_INTERVAL.as_secs_f64() / 1e6,
             stats.average_hashrate() / 1e6,
             si(total),
         );
+        println!("  {best}");
+
+        // Restated every tick because it is the only honest measure of
+        // progress: the odds are linear in total work and carry no memory of
+        // how that work was spread over time.
+        if difficulty > 0.0 {
+            // The shortfall as a power of two, because the bits themselves read
+            // deceptively: 29 of 62 looks like halfway and is in fact 2^33 —
+            // some eight billion times — too easy.
+            let short = needed.saturating_sub(lifetime.best_zero_bits);
+
+            println!(
+                "  lifetime {:>8}   best ever {}/{needed} bits (2^{short} short)   \
+                 ~1 in {:.3e} of a block",
+                si(lifetime.total_hashes),
+                lifetime.best_zero_bits,
+                lifetime.odds_denominator(difficulty),
+            );
+        }
     }
 }
 

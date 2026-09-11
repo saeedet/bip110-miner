@@ -10,6 +10,7 @@ description = "The hashing client. Knows nothing about blocks or the node"
 bip110-primitives.workspace = true
 mining.workspace = true
 stratum.workspace = true
+serde.workspace = true
 serde_json.workspace = true
 
 [lints]
