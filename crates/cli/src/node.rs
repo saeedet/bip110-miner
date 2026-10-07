@@ -145,6 +145,9 @@ pub fn start(settings: &Settings, mut waiting: impl FnMut(Duration)) -> Result<(
     let output = Command::new(settings.binaries.join(platform::node_daemon()))
         .arg(format!("-datadir={}", settings.datadir.display()))
         .arg(format!("-conf={}", conf.display()))
+        // Wins over the config file's own port, so a port moved because
+        // something else held the usual one takes effect.
+        .arg(format!("-rpcport={}", settings.rpc_port))
         .arg("-daemon")
         .output()
         .map_err(|error| format!("cannot start the node: {error}"))?;
@@ -214,6 +217,7 @@ mod tests {
     #[test]
     fn knows_where_each_network_listens_for_rpc() {
         assert_eq!(configured_rpc_port(Network::Mainnet), Some(8342));
-        assert_eq!(configured_rpc_port(Network::Regtest), Some(18443));
+        assert_eq!(configured_rpc_port(Network::Testnet4), Some(48342));
+        assert_eq!(configured_rpc_port(Network::Regtest), Some(18453));
     }
 }
