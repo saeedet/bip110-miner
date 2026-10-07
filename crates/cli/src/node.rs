@@ -102,7 +102,7 @@ fn parse_version(text: &str) -> Option<(u32, u32, u32)> {
         .filter_map(|word| word.strip_prefix('v'))
         .find(|rest| rest.starts_with(|c: char| c.is_ascii_digit()))?;
     let mut numbers = after.split(['.', '-']).map(|part| part.parse::<u32>().ok());
-    Some((numbers.next()??, numbers.next()??, numbers.next()?.unwrap_or(0)))
+    Some((numbers.next()??, numbers.next()??, numbers.next().flatten().unwrap_or(0)))
 }
 
 /// The version of the node that is actually running, from its user agent.
@@ -188,6 +188,7 @@ mod tests {
             Some((29, 4, 2))
         );
         assert_eq!(parse_version("Bitcoin Knots daemon version v29.4.knots20260508"), Some((29, 4, 0)));
+        assert_eq!(parse_version("Bitcoin Knots daemon version v30.0"), Some((30, 0, 0)));
         assert_eq!(parse_version("nothing useful"), None);
     }
 
