@@ -1,0 +1,24 @@
+╭─ bip110-miner · what am I looking at? ───────────────────────────────────────╮
+│                                                                              │
+│  HASH       Your computer scrambles the block's contents into a long         │
+│             number. Each try is a "hash". It does about 26 million a         │
+│             second.                                                          │
+│                                                                              │
+│  ZERO BITS  A block counts only if that number starts with enough zeros.     │
+│             Each extra zero bit makes it twice as hard, which is why 28 of   │
+│             62 is nowhere near halfway.                                      │
+│                                                                              │
+│  THE ODDS   Every hash is a fresh lottery ticket. Past tries don't bring     │
+│             you closer, so stopping and restarting costs nothing.            │
+│                                                                              │
+│  THE NODE   Your own copy of the network's rules and history. It's what      │
+│             lets you mine without trusting anyone.                           │
+│                                                                              │
+│  REWARDS    Paid only if you find a block — there is no partial credit, and  │
+│             no slow drip of earnings. It's all or nothing.                   │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+╰─ esc close ──────────────────────────────────────────────────────────────────╯

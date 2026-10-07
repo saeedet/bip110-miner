@@ -38,6 +38,9 @@ serde_json = "1"
 clap = { version = "4", features = ["derive"] }
 toml = "0.9"
 ctrlc = { version = "3", features = ["termination"] }
+# The live dashboard. It re-exports crossterm, so the two can never disagree
+# about a version.
+ratatui = { version = "0.30", default-features = false, features = ["crossterm"] }
 
 [workspace.lints.rust]
 # This codebase is meant to be read, so an undocumented public item is a build

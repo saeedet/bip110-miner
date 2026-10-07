@@ -1,0 +1,24 @@
+╭─ bip110-miner ───────────────────────────────────────────────────── MAINNET ─╮
+│                                                                              │
+│                                                                              │
+│                           ★  YOU FOUND A BLOCK  ★                            │
+│                                                                              │
+│             block 976,035 · 14:23:05 UTC · accepted by your node             │
+│                                                                              │
+│          reward      3.1262 coins  →  bc1qw508…f3t4                          │
+│          spendable   after block 982,515 (45 days from now)                  │
+│                                                                              │
+│          The chance of that this session was about 1 in 24 million.          │
+│                                                                              │
+├──────────────────────────────────────────────────────────────────────────────┤
+│   Make sure the wallet that owns this address is backed up.                  │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+╰─ enter back to mining ───────────────────────────────────────────────────────╯

@@ -1,28 +1,46 @@
 //! `bip110-miner` / `bip110-miner start` — mine.
 //!
 //! Brings up whatever is missing — the node, then the pool, then the miner —
-//! in one process, and stops the pool and miner together on Ctrl-C. The pool
-//! still listens on its usual port, so other mining hardware can join in.
+//! in one process, and stops the pool and miner together on `q` or Ctrl-C.
+//! The pool still listens on its usual port, so other mining hardware can
+//! join in.
+//!
+//! In a terminal this shows the live dashboard. Anywhere else — a log file, a
+//! service, a pipe — or with `--plain`, it prints the same events as lines.
 //!
 //! The node is left running afterwards; see [`crate::node`].
 
+use std::io::IsTerminal;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::mpsc::channel;
 use std::sync::{Arc, Condvar, Mutex};
 use std::time::Duration;
 
-use events::{Event, Plain, Sink};
+use events::{Channel, Event, Plain, Sink};
 use miner::Controls;
 use node_rpc::Network;
 
 use crate::config::{Settings, network_key};
+use crate::dashboard;
 use crate::node;
 use crate::platform::KeepAwake;
 
 /// How often the miner reports its hashrate in plain output.
 const REPORT_INTERVAL: Duration = Duration::from_secs(10);
 
+/// How often it reports to the dashboard, whose hashrate graph wants detail.
+const DASHBOARD_REPORT_INTERVAL: Duration = Duration::from_secs(2);
+
+/// How to mine.
+pub struct Options {
+    /// Keep the machine from sleeping while mining.
+    pub keep_awake: bool,
+    /// Print lines even in a terminal, instead of the dashboard.
+    pub plain: bool,
+}
+
 /// Runs the command.
-pub fn run(settings: &Settings, keep_awake: bool) -> Result<(), String> {
+pub fn run(settings: &Settings, options: &Options) -> Result<(), String> {
     // Real money needs a deliberate address. Regtest makes its own.
     if settings.address.is_none() && settings.network != Network::Regtest {
         return Err(format!(
@@ -33,27 +51,70 @@ pub fn run(settings: &Settings, keep_awake: bool) -> Result<(), String> {
 
     ensure_node(settings)?;
 
-    let sink = Arc::new(Watch::default());
+    let live = !options.plain && std::io::stdout().is_terminal();
+    let (sender, events) = channel();
+    let output: Arc<dyn Sink> = if live { Arc::new(Channel::new(sender)) } else { Arc::new(Plain) };
+    let sink = Arc::new(Watch::new(output));
     let stop_pool = Arc::new(AtomicBool::new(false));
     let controls = Arc::new(Controls::new(settings.threads));
+    handle_signals(&stop_pool, &controls, !live)?;
 
-    // Ctrl-C (or a SIGTERM) asks both halves to finish, which lets the miner
-    // save its lifetime totals. A second press means "now".
-    {
-        let stop_pool = Arc::clone(&stop_pool);
-        let controls = Arc::clone(&controls);
-        let presses = AtomicUsize::new(0);
-        ctrlc::set_handler(move || {
-            if presses.fetch_add(1, Ordering::Relaxed) > 0 {
-                std::process::exit(130);
-            }
-            println!("\nstopping...");
-            stop_pool.store(true, Ordering::Relaxed);
-            controls.stop();
-        })
-        .map_err(|error| format!("cannot handle Ctrl-C: {error}"))?;
+    // A laptop that idles to sleep stops mining without a word.
+    let awake = options.keep_awake.then(KeepAwake::start);
+    let keeping_awake = awake.as_ref().is_some_and(KeepAwake::active);
+    if keeping_awake && !live {
+        println!("keeping this machine awake while mining (--allow-sleep to turn this off)\n");
     }
 
+    let session = {
+        let settings = settings.clone();
+        let (sink, stop_pool, controls) = (Arc::clone(&sink), Arc::clone(&stop_pool), Arc::clone(&controls));
+        let interval = if live { DASHBOARD_REPORT_INTERVAL } else { REPORT_INTERVAL };
+        std::thread::spawn(move || mine(&settings, &sink, &stop_pool, &controls, interval))
+    };
+
+    let shown = live.then(|| {
+        dashboard::run(dashboard::Session {
+            settings,
+            events,
+            controls: Arc::clone(&controls),
+            finished: &|| session.is_finished(),
+            keeping_awake,
+        })
+    });
+
+    // However the screen closed, mining ends with it. Plain output has no
+    // screen to close: it runs until a signal or a failure ends the session.
+    if live {
+        if !session.is_finished() {
+            println!("stopping...");
+        }
+        stop_pool.store(true, Ordering::Relaxed);
+        controls.stop();
+    }
+    let result = session.join().unwrap_or_else(|_| Err("mining stopped unexpectedly".into()));
+    drop(awake);
+
+    if let Some(shown) = shown {
+        let outcome = shown?;
+        // The dashboard has gone, so whatever ended mining is said again here,
+        // where it stays readable.
+        if let Some(fatal) = &outcome.state.fatal {
+            eprintln!("error: {fatal}");
+        }
+        summarise(&outcome.state);
+    }
+    result
+}
+
+/// Pool, then miner, until either stops or a stop is asked for.
+fn mine(
+    settings: &Settings,
+    sink: &Arc<Watch>,
+    stop_pool: &Arc<AtomicBool>,
+    controls: &Arc<Controls>,
+    report_interval: Duration,
+) -> Result<(), String> {
     let pool = {
         let options = pool::Options {
             network: settings.network,
@@ -63,7 +124,7 @@ pub fn run(settings: &Settings, keep_awake: bool) -> Result<(), String> {
             rpc_port: Some(settings.rpc_port),
         };
         let sink: Arc<dyn Sink> = sink.clone();
-        let stop = Arc::clone(&stop_pool);
+        let stop = Arc::clone(stop_pool);
         std::thread::spawn(move || pool::run(&options, sink, stop))
     };
 
@@ -73,22 +134,18 @@ pub fn run(settings: &Settings, keep_awake: bool) -> Result<(), String> {
         return finish(pool.join(), Ok(()));
     }
 
-    // A laptop that idles to sleep stops mining without a word.
-    let awake = keep_awake.then(KeepAwake::start);
-    if awake.as_ref().is_some_and(KeepAwake::active) {
-        println!("keeping this machine awake while mining (--allow-sleep to turn this off)\n");
-    }
-
     let miner = {
         let options = miner::Options {
             pool: settings.listen.to_string(),
             worker: worker_name(),
-            slots: settings.threads,
-            report_interval: REPORT_INTERVAL,
+            // A thread per core, idle beyond the power level, so the
+            // dashboard can turn the power up without reconnecting.
+            slots: std::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get),
+            report_interval,
             lifetime_path: lifetime_path(settings.network),
         };
         let sink: Arc<dyn Sink> = sink.clone();
-        let controls = Arc::clone(&controls);
+        let controls = Arc::clone(controls);
         std::thread::spawn(move || miner::run(&options, sink, controls))
     };
 
@@ -102,6 +159,40 @@ pub fn run(settings: &Settings, keep_awake: bool) -> Result<(), String> {
 
     let miner_result = miner.join().unwrap_or_else(|_| Err("the miner panicked".into()));
     finish(pool.join(), miner_result)
+}
+
+/// Ctrl-C (or a SIGTERM) asks both halves to finish, which lets the miner
+/// save its lifetime totals. A second press means "now".
+///
+/// The dashboard reads Ctrl-C as a key, so there this only catches signals
+/// sent from elsewhere, and stays quiet rather than print over the screen.
+fn handle_signals(stop_pool: &Arc<AtomicBool>, controls: &Arc<Controls>, announce: bool) -> Result<(), String> {
+    let stop_pool = Arc::clone(stop_pool);
+    let controls = Arc::clone(controls);
+    let presses = AtomicUsize::new(0);
+    ctrlc::set_handler(move || {
+        if presses.fetch_add(1, Ordering::Relaxed) > 0 {
+            std::process::exit(130);
+        }
+        if announce {
+            println!("\nstopping...");
+        }
+        stop_pool.store(true, Ordering::Relaxed);
+        controls.stop();
+    })
+    .map_err(|error| format!("cannot handle Ctrl-C: {error}"))
+}
+
+/// What the session came to, once the dashboard has closed.
+fn summarise(state: &dashboard::State) {
+    println!(
+        "mined for {} · {} hashes · best {} zero bits (a block needs {})",
+        dashboard::format::uptime(state.now.saturating_sub(state.started), true),
+        events::si(state.session_hashes),
+        state.best_zero_bits,
+        state.needed_zero_bits,
+    );
+    println!("the node is still running, so the next start is quick — `bip110-miner stop` shuts it down");
 }
 
 /// Starts the node if needed, and refuses one too old to mine with.
@@ -178,14 +269,18 @@ fn worker_name() -> String {
     format!("{host}.0")
 }
 
-/// Prints events as plain lines, and notices when the pool has work.
-#[derive(Default)]
+/// Passes events on, and notices when the pool has work.
 struct Watch {
+    output: Arc<dyn Sink>,
     ready: Mutex<bool>,
     changed: Condvar,
 }
 
 impl Watch {
+    fn new(output: Arc<dyn Sink>) -> Self {
+        Self { output, ready: Mutex::new(false), changed: Condvar::new() }
+    }
+
     /// Waits for the pool's first job. False if `give_up` says to stop first.
     fn wait_until_ready(&self, give_up: impl Fn() -> bool) -> bool {
         let mut ready = self.ready.lock().expect("watch lock");
@@ -209,6 +304,6 @@ impl Sink for Watch {
             *self.ready.lock().expect("watch lock") = true;
             self.changed.notify_all();
         }
-        Plain.emit(event);
+        self.output.emit(event);
     }
 }

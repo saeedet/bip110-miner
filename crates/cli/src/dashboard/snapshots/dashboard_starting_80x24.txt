@@ -1,0 +1,24 @@
+╭─ bip110-miner ───────────────────────────────── MAINNET · 14:23 UTC · up 0s ─╮
+│  NODE  ○ checking…                                                           │
+├─ MINING ─────────────────────────────────────────────────────────────────────┤
+│   starting…                                                                  │
+│   power  ● eco (2 of 8 cores)              job: no job yet                   │
+├─ YOUR CHANCES ───────────────────────────────────────────────────────────────┤
+│   This session    waiting for the first job                                  │
+│   On average      —                                                          │
+│   Best hash yet   —                                                          │
+│                                                                              │
+├─ ALL TIME ───────────────────────────────────────────────────────────────────┤
+│   counting…                                                                  │
+│   rewards: waiting for the pool                                              │
+├─ RECENT ─────────────────────────────────────────────────────────────────────┤
+│   14:23  bip110-miner 0.1.0 started                                          │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+╰─ q quit · p pause · +/- power · ? what am I looking at ──────────────────────╯

@@ -8,8 +8,8 @@ use std::net::TcpListener;
 use node_rpc::Network;
 use serde_json::{Value, json};
 
-use super::status::advertises_blake2b;
 use super::{grouped, short_address};
+use crate::chain::advertises_blake2b;
 use crate::config::{self, Settings, network_key};
 use crate::node;
 

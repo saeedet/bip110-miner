@@ -6,8 +6,10 @@
 //!
 //! Honest version up front: a found block is a lottery win, not a paycheck.
 
+mod chain;
 mod commands;
 mod config;
+mod dashboard;
 mod node;
 mod platform;
 
@@ -44,6 +46,9 @@ enum Command {
         /// Let the machine sleep while mining
         #[arg(long)]
         allow_sleep: bool,
+        /// Print a log instead of the live dashboard
+        #[arg(long)]
+        plain: bool,
     },
     /// Save settings, such as where rewards go
     Setup {
@@ -92,8 +97,10 @@ fn run(cli: Cli) -> Result<(), String> {
     let settings = Settings::resolve(&file, &overrides)?;
 
     match cli.command {
-        None => commands::start::run(&settings, true),
-        Some(Command::Start { allow_sleep, .. }) => commands::start::run(&settings, !allow_sleep),
+        None => commands::start::run(&settings, &commands::start::Options { keep_awake: true, plain: false }),
+        Some(Command::Start { allow_sleep, plain, .. }) => {
+            commands::start::run(&settings, &commands::start::Options { keep_awake: !allow_sleep, plain })
+        }
         Some(Command::Setup { address, power }) => commands::setup::run(
             &commands::setup::Changes {
                 network: settings.network,

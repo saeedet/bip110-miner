@@ -139,6 +139,8 @@ pub struct Settings {
     pub power: Power,
     /// Hashing threads, from `power` unless overridden.
     pub threads: usize,
+    /// Whether `threads` was given exactly with `--threads`, not by power.
+    pub threads_from_flag: bool,
     /// Where rewards go, if anywhere yet.
     pub address: Option<String>,
     /// Where the node's programs are.
@@ -205,6 +207,7 @@ impl Settings {
             network,
             power,
             threads,
+            threads_from_flag: overrides.threads.is_some(),
             address,
             binaries,
             datadir,

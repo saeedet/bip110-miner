@@ -9,6 +9,7 @@ use node_rpc::Network;
 use serde_json::{Value, json};
 
 use super::{grouped, short_address};
+use crate::chain::advertises_blake2b;
 use crate::config::{Settings, network_key};
 use crate::node;
 
@@ -82,14 +83,6 @@ fn history(chainstates: &Value) -> String {
         }
         _ => "unknown".to_owned(),
     }
-}
-
-/// Whether a peer advertises `NODE_BLAKE2B`, the fork's service bit.
-pub fn advertises_blake2b(peer: &Value) -> bool {
-    peer.get("services")
-        .and_then(Value::as_str)
-        .and_then(|hex| u64::from_str_radix(hex, 16).ok())
-        .is_some_and(|services| services & (1 << 28) != 0)
 }
 
 fn unix_now() -> u64 {

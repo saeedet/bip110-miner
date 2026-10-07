@@ -1,0 +1,40 @@
+╭─ bip110-miner ────────────────────────────────────────────────────────────────── MAINNET · 14:23:05 UTC · up 2h 14m ─╮
+│  NODE  ● in sync · block 976,034 · tip 3 min old · 12 peers (9 BIP-110) · Knots 29.4.2 · 5.1 GB                      │
+├─ MINING ─────────────────────────────────────────────────┬─ YOUR CHANCES ────────────────────────────────────────────┤
+│                                                          │                                                           │
+│   26.1 MH/s   (average 25.8 MH/s this session)           │   This session                                            │
+│   ▃▄▃▄▃▄▃▄▃▄▄▄▄▄▄▄▄▅██████████████████████               │      about 1 in 24 million of finding a block             │
+│   last 30 minutes                                        │                                                           │
+│                                                          │   On average                                              │
+│   power   ○ eco   ● balanced   ○ max                     │      one block every ≈ 5,945 years at this speed          │
+│           6 of 8 cores · press + or - to change          │                                                           │
+│                                                          │   Best hash this session                                  │
+│   job     block 976,035 · 203 transactions               │      28 of the 62 zero bits a block needs                 │
+│           built by your node 52 seconds ago              │      each missing bit doubles it: 2³⁴ ≈ 17 billion× short │
+│                                                          │                                                           │
+├─ ALL TIME ───────────────────────────────────────────────┴───────────────────────────────────────────────────────────┤
+│   3.04T hashes · 12 sessions · best ever 34 zero bits · about 1 in 1.6 million of a block so far                     │
+│   rewards to bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4 · spendable 45 days after a block is found                   │
+├─ RECENT ─────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│   14:22:51  someone else found block 976,034 → new job, nothing lost                                                 │
+│   14:15:09  someone else found block 976,033 → new job, nothing lost                                                 │
+│   14:12:07  new personal best: 28 zero bits                                                                          │
+│   14:10:44  power set to balanced (6 of 8 cores)                                                                     │
+│   14:09:40  mining started                                                                                           │
+│   14:08:31  waiting for the node: 4 blocks behind its own headers                                                    │
+│   14:08:02  bip110-miner 0.1.0 started                                                                               │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+╰─ q quit · p pause · +/- power · ? what am I looking at ──────────────────────────────────────────────────────────────╯
