@@ -22,6 +22,7 @@ bip110-primitives = { path = "crates/bip110-primitives" }
 stratum = { path = "crates/stratum" }
 node-rpc = { path = "crates/node-rpc" }
 mining = { path = "crates/mining" }
+events = { path = "crates/events" }
 pool = { path = "crates/pool" }
 miner = { path = "crates/miner" }
 
@@ -30,6 +31,13 @@ miner = { path = "crates/miner" }
 # `getblocktemplate` would be effort spent learning nothing about the chain.
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+
+# The command-line interface. Like serde, none of these is Bitcoin-specific:
+# argument parsing, a config file format, and Ctrl-C handling teach nothing about
+# mining, so writing them by hand would be effort spent on the wrong thing.
+clap = { version = "4", features = ["derive"] }
+toml = "0.9"
+ctrlc = { version = "3", features = ["termination"] }
 
 [workspace.lints.rust]
 # This codebase is meant to be read, so an undocumented public item is a build
