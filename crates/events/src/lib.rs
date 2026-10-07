@@ -218,6 +218,11 @@ pub enum Event {
         difficulty: f64,
         /// Whether earlier work was discarded.
         clean: bool,
+        /// The block it builds on, where the protocol reveals it.
+        ///
+        /// Bitcoin's Stratum sends the previous block hash; BIP-110's hides it
+        /// from miners by design, so there it is `None`.
+        prev_hash: Option<String>,
     },
     /// A hash met the target.
     SolutionFound {

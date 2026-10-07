@@ -276,6 +276,7 @@ fn install(state: &WorkState, job: Job, extranonce1: &[u8], extranonce2_size: us
         job_id: job.job_id.clone(),
         difficulty: Target::difficulty(job.bits),
         clean: job.clean_jobs,
+        prev_hash: None,
     });
 
     state.set(Work {

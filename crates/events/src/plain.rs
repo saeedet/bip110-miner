@@ -128,10 +128,13 @@ pub fn render(event: &Event) -> Vec<(Stream, String)> {
             si(*total_hashes),
         )),
         Event::PoolDifficulty { difficulty } => out(format!("pool set difficulty to {difficulty}")),
-        Event::JobReceived { job_id, difficulty, clean } => out(format!(
-            "job {job_id} at difficulty {difficulty:.4}{}",
-            if *clean { " (clean)" } else { "" },
-        )),
+        Event::JobReceived { job_id, difficulty, clean, prev_hash } => {
+            let clean = if *clean { " (clean)" } else { "" };
+            out(match prev_hash {
+                Some(prev_hash) => format!("job {job_id} on {prev_hash}{clean}"),
+                None => format!("job {job_id} at difficulty {difficulty:.4}{clean}"),
+            })
+        }
         Event::SolutionFound { hash, zero_bits } => {
             out(format!("solution found: {hash} ({zero_bits} zero bits)"))
         }
@@ -223,8 +226,23 @@ mod tests {
             "hashing on 8 of 8 cores (full tilt — expect heat)\n"
         );
         assert_eq!(
-            text(Event::JobReceived { job_id: "3".into(), difficulty: 1_141_943_013.515_522_2, clean: true }),
+            text(Event::JobReceived {
+                job_id: "3".into(),
+                difficulty: 1_141_943_013.515_522_2,
+                clean: true,
+                prev_hash: None,
+            }),
             "job 3 at difficulty 1141943013.5155 (clean)"
+        );
+        // Bitcoin's form, where Stratum reveals the parent.
+        assert_eq!(
+            text(Event::JobReceived {
+                job_id: "4c9".into(),
+                difficulty: 1.0,
+                clean: true,
+                prev_hash: Some("28653d21".into()),
+            }),
+            "job 4c9 on 28653d21 (clean)"
         );
         assert_eq!(
             text(Event::PoolDifficulty { difficulty: 1_141_943_013.515_522_2 }),
