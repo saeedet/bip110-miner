@@ -85,7 +85,7 @@ that hasn't been updated could build blocks the network rejects.
 │    ✔  This Mac          Apple M3 · 8 cores · 146 GB free                     │
 │    ●  Node software     Knots 29.4.1 — out of date          ← now            │
 │    ✔  Blockchain        in sync                                              │
-│    ✔  Reward address    bc1qjxn…yms0                                         │
+│    ✔  Reward address    bc1qw50…f3t4                                         │
 │                                                                              │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │  The network changed a rule at block 973,440, and this version of Knots      │
@@ -214,7 +214,7 @@ The RECENT panel grows to fill whatever height the terminal has.
 │                   (each missing bit doubles it: 2³⁴ ≈ 17 billion× short)     │
 ├─ ALL TIME ───────────────────────────────────────────────────────────────────┤
 │   3.04 T hashes · 12 sessions · best ever 34 bits                            │
-│   rewards to bc1qjxn…yms0 · spendable 45 days after a block is found         │
+│   rewards to bc1qw50…f3t4 · spendable 45 days after a block is found         │
 ├─ RECENT ─────────────────────────────────────────────────────────────────────┤
 │   14:22  someone else found block 976,034 → new job, nothing lost            │
 │   14:15  someone else found block 976,033 → new job, nothing lost            │
@@ -247,7 +247,7 @@ The RECENT panel grows to fill whatever height the terminal has.
 │                                                          │                                                           │
 ├─ ALL TIME ───────────────────────────────────────────────┴───────────────────────────────────────────────────────────┤
 │   3.04 T hashes over 12 sessions · best ever 34 zero bits (2³² short) · about 1 in 15 million of a block so far      │
-│   rewards go to bc1qjxn0hvcv58wyagt77vv0ff0ld6jhy6ch9myms0 · spendable 45 days after a block is found                │
+│   rewards go to bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4 · spendable 45 days after a block is found                │
 ├─ RECENT ─────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 │   14:22:51  someone else found block 976,034 → new job, nothing lost                                                 │
 │   14:15:09  someone else found block 976,033 → new job, nothing lost                                                 │
@@ -288,7 +288,7 @@ and it says more to a newcomer than an abstract number would.
 │                                                                              │
 │               block 976,412 · 14:22:51 UTC · accepted by your node           │
 │                                                                              │
-│          reward    3.125 + 0.0012 in fees  →  bc1qjxn…yms0                   │
+│          reward    3.125 + 0.0012 in fees  →  bc1qw50…f3t4                   │
 │          spendable after block 982,892 (about 45 days from now)              │
 │          confirmations   0 — I'll keep watching it                           │
 │                                                                              │
