@@ -12,6 +12,10 @@ use std::io::{BufRead, BufReader, Write};
 use std::net::TcpStream;
 use std::sync::mpsc::{Receiver, Sender, channel};
 
+use std::net::Shutdown;
+use std::sync::Arc;
+
+use events::{Event, Level, Sink};
 use stratum::Incoming;
 
 /// A live Stratum connection.
@@ -20,16 +24,30 @@ pub struct Connection {
     pub outbound: Sender<String>,
     /// Messages received, in arrival order.
     pub incoming: Receiver<Incoming>,
+    /// A handle on the socket, kept only to close it.
+    socket: TcpStream,
+}
+
+impl Connection {
+    /// Closes the socket, which also unblocks the reader thread.
+    ///
+    /// Without this the reader would sit in a blocking read until the pool
+    /// happened to say something, holding the connection open long after the
+    /// miner had stopped.
+    pub fn close(&self) {
+        let _ = self.socket.shutdown(Shutdown::Both);
+    }
 }
 
 /// Connects and starts the reader and writer threads.
-pub fn connect(address: &str) -> std::io::Result<Connection> {
+pub fn connect(address: &str, sink: Arc<dyn Sink>) -> std::io::Result<Connection> {
     let stream = TcpStream::connect(address)?;
     // A share delayed by Nagle is a share that might arrive after the block
     // it solves has been superseded.
     stream.set_nodelay(true)?;
 
     let read_half = stream.try_clone()?;
+    let socket = stream.try_clone()?;
 
     let (outbound, to_send) = channel::<String>();
     let (received, incoming) = channel::<Incoming>();
@@ -50,7 +68,10 @@ pub fn connect(address: &str) -> std::io::Result<Connection> {
                 }
                 // A message we cannot parse is worth reporting but not worth
                 // disconnecting over — pools send extensions we ignore.
-                Err(error) => eprintln!("cannot parse from pool: {error}"),
+                Err(error) => sink.emit(Event::Log {
+                    level: Level::Warn,
+                    text: format!("cannot parse from pool: {error}"),
+                }),
             }
         }
     });
@@ -67,5 +88,5 @@ pub fn connect(address: &str) -> std::io::Result<Connection> {
         }
     });
 
-    Ok(Connection { outbound, incoming })
+    Ok(Connection { outbound, incoming, socket })
 }

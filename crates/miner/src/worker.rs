@@ -40,6 +40,9 @@ use std::time::{Duration, Instant};
 use mining::NonceSpace;
 use stratum::{Request, Share, method};
 
+use events::{Event, Level, Sink};
+
+use crate::controls::Controls;
 use crate::stats::Stats;
 use crate::work::WorkState;
 
@@ -66,16 +69,23 @@ struct Shared {
     extranonce_counter: AtomicU64,
     /// JSON-RPC ids for submissions.
     submit_id: AtomicU64,
+    controls: Arc<Controls>,
+    sink: Arc<dyn Sink>,
 }
 
-/// Starts `threads` mining threads and returns immediately.
+/// Starts `slots` mining threads and returns their handles.
+///
+/// Only as many as [`Controls::threads`] allows actually hash; the rest wait
+/// idle, so the count can rise again later without spawning anything.
 pub fn spawn(
     state: Arc<WorkState>,
     stats: Arc<Stats>,
     outbound: Sender<String>,
     worker: String,
-    threads: usize,
-) {
+    slots: usize,
+    controls: Arc<Controls>,
+    sink: Arc<dyn Sink>,
+) -> Vec<std::thread::JoinHandle<()>> {
     let shared = Arc::new(Shared {
         state,
         stats,
@@ -83,20 +93,36 @@ pub fn spawn(
         worker,
         extranonce_counter: AtomicU64::new(0),
         submit_id: AtomicU64::new(100),
+        controls,
+        sink,
     });
 
-    for _ in 0..threads {
-        let shared = Arc::clone(&shared);
-        std::thread::spawn(move || mine(&shared));
-    }
+    (0..slots)
+        .map(|index| {
+            let shared = Arc::clone(&shared);
+            std::thread::spawn(move || mine(&shared, index))
+        })
+        .collect()
 }
 
-/// One mining thread, running until the connection drops.
-fn mine(shared: &Shared) {
+/// How long an idle thread sleeps before checking whether it is wanted.
+const IDLE_POLL: Duration = Duration::from_millis(200);
+
+/// One mining thread, running until it is told to stop.
+fn mine(shared: &Shared, index: usize) {
     // Claimed once, for the life of the thread. 2^64 hashes sit under it.
     let ticket = shared.extranonce_counter.fetch_add(1, Ordering::Relaxed);
 
     loop {
+        if shared.controls.stopping() {
+            return;
+        }
+        // Paused, or surplus to the current power setting.
+        if !shared.controls.should_hash(index) {
+            std::thread::sleep(IDLE_POLL);
+            continue;
+        }
+
         let Some((work, generation)) = shared.state.snapshot() else {
             // No job yet. Wait rather than spin.
             std::thread::sleep(Duration::from_millis(100));
@@ -118,7 +144,10 @@ fn mine(shared: &Shared) {
         let midstate = match work.job.midstate(&work.extranonce1, &extranonce2) {
             Ok(midstate) => midstate,
             Err(error) => {
-                eprintln!("cannot build a midstate for this job: {error}");
+                shared.sink.emit(Event::Log {
+                    level: Level::Warn,
+                    text: format!("cannot build a midstate for this job: {error}"),
+                });
                 wait_for_new_work(&shared.state, generation);
                 continue;
             }
@@ -126,7 +155,9 @@ fn mine(shared: &Shared) {
 
         let mut at = NonceSpace::default();
 
-        while shared.state.is_current(generation) {
+        // The controls are read once per batch, so a stop, a pause or a power
+        // change takes effect within a few tens of milliseconds.
+        while shared.state.is_current(generation) && shared.controls.should_hash(index) {
             let result = mining::search(&midstate, &work.target, at, u64::from(BATCH));
 
             shared.stats.record(result.hashes, result.best);
@@ -169,22 +200,24 @@ fn next_batch(at: NonceSpace) -> NonceSpace {
 
 /// Sends a share to the pool.
 fn submit(shared: &Shared, job_id: &str, extranonce2: &[u8], solution: mining::Solution) {
-    println!(
-        "solution found: {} ({} zero bits)",
-        solution.hash,
-        solution.hash.leading_zero_bits()
-    );
+    shared.sink.emit(Event::SolutionFound {
+        hash: solution.hash.to_string(),
+        zero_bits: solution.hash.leading_zero_bits(),
+    });
 
     // Stratum cannot carry these, and the pool zeroes them when it re-checks,
     // so a non-zero value here would produce a share the pool computes a
     // different hash for — rejected, with nothing to point at. The traversal
     // above cannot produce one; this catches the day somebody changes it.
     if solution.at.nonce2 != 0 || solution.at.nonce3 != 0 {
-        eprintln!(
-            "refusing to submit a share with nonce2={} nonce3={}: Stratum has no slot \
-             for them, so the pool would reconstruct a different hash",
-            solution.at.nonce2, solution.at.nonce3
-        );
+        shared.sink.emit(Event::Log {
+            level: Level::Warn,
+            text: format!(
+                "refusing to submit a share with nonce2={} nonce3={}: Stratum has no slot \
+                 for them, so the pool would reconstruct a different hash",
+                solution.at.nonce2, solution.at.nonce3
+            ),
+        });
         return;
     }
 
@@ -202,7 +235,10 @@ fn submit(shared: &Shared, job_id: &str, extranonce2: &[u8], solution: mining::S
         Ok(line) => {
             let _ = shared.outbound.send(line);
         }
-        Err(error) => eprintln!("cannot serialise share: {error}"),
+        Err(error) => shared.sink.emit(Event::Log {
+            level: Level::Warn,
+            text: format!("cannot serialise share: {error}"),
+        }),
     }
 }
 
