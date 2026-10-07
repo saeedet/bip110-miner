@@ -5,8 +5,9 @@
 //! attracted, and carry a subsidy somebody intends to spend. If the five stages
 //! were wrong in any detail, these hashes would not reproduce.
 //!
-//! Captured from a synced pruned node on 2026-09-07 with
-//! `getblockheader <hash> false`.
+//! Captured from a synced pruned node with `getblockheader <hash> false`:
+//! the first five on 2026-09-07 under Knots 29.4.1, the last two on 2026-10-07
+//! under Knots 29.4.2.
 
 use bip110_primitives::{BlockHeader, PowMidstate, Target, pow_hash};
 
@@ -26,6 +27,13 @@ const BLOCKS: &[(u32, &str, &str)] = &[
         "00000000000000097ff6276d1867ff0a062967fb1cbadf4ccaf20d5112184f14"),
     (969578, "000000a0f655d407b1d7d0f8e671e09534b14ca06c6fe53ed0d7e5d8050000000000000031498a7f8722731137aced65d61241787ebb88a420d1b763c10935963d7d39ac3e489f6a500b0f19d3a028917f48e6063e489f6a00000000b14cf00d03000000000000000000000037000400000000000000000000000000000000006acb0e000000000000000000000000000000000000000000000000000000000000000000",
         "0000000000000006d888d8394f231a78738e438a1fd5aa0e7c3bfe51ae8c4da7"),
+    // 973,440 is the first block under the long-coinbase-maturity soft fork
+    // (Knots 29.4.2). The rule constrains which transactions a block may
+    // spend, not how it is hashed, so the proof of work must be unchanged.
+    (973440, "000000a046adc648b14428481171b4f175ab9c89cf6c0f15c074e54800000000000000004ec76db35d69a084846cef4a6a234facb667109a0f00afb65a4a22f49ac8d454416eb16ac0410119f9391b64446605d0416eb16a00000000b14cf00d2c0000000000000000000000ea0000000000000000000000000000000000000080da0e000000000000000000000000000000000000000000000000000000000000000000",
+        "0000000000000000e3f17551601e2b7d62a1a64f786f0758952923d13a6ca491"),
+    (976039, "000000a0bc3417c98f137f5621f888e9bcb76e1c9b1e0d061f180f820000000000000000b3440de3f6b36d1a4c8a8038060ea0966d3eedc16fa175e5015b860ab087fb56e563c66a2ad8001915d487d2b62d9da1e563c66a00000000b10cf01b0400000000000000000000002c00042dd3f968d6d95bf5fd46e2a55a1387d2b9a7e40e000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000097638ea094360a6126528a7257a2fe9fb99104cfe0202b41"),
 ];
 
 fn unhex(s: &str) -> Vec<u8> {
@@ -117,4 +125,27 @@ fn the_fork_block_carries_the_shifted_target() {
         (3.0e7..3.1e7).contains(&difficulty),
         "fork block difficulty was {difficulty:.0}, expected ~3.04e7"
     );
+}
+
+/// A real block mined with the block-withholding protection switched on.
+///
+/// The XOR mask lets a pool hide whether a share is a block from its own
+/// miners. Until a masked block turned up on mainnet, the mask derivation —
+/// a tagged hash of the key, with the leading `xor_key_mask_clear_bits` bits
+/// zeroed, here 45 of them, so five whole bytes and five bits of the sixth —
+/// was only checked against a reading of the C++. Reproducing this hash proves
+/// it against the network. The same block also sets `UseTimeOffset`.
+///
+/// Asserted separately so that the coverage cannot quietly vanish if the
+/// vector list above is ever trimmed.
+#[test]
+fn a_real_masked_block_is_reproduced() {
+    let (_, raw, expected) = BLOCKS.iter().find(|(h, _, _)| *h == 976_039).expect("present");
+    let header = BlockHeader::deserialize(&unhex(raw)).expect("parses");
+
+    assert_ne!(header.xor_key, [0u8; 16], "this vector must exercise the mask");
+    assert_eq!(header.xor_key_mask_clear_bits, 45);
+    assert_ne!(header.flags & bip110_primitives::header::FLAG_USE_TIME_OFFSET, 0);
+
+    assert_eq!(pow_hash(&header).to_string(), *expected);
 }
