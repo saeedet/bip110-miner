@@ -46,6 +46,11 @@ impl HttpClient {
         Self { address, timeout }
     }
 
+    /// Where requests go.
+    pub const fn address(&self) -> SocketAddr {
+        self.address
+    }
+
     /// POSTs a JSON body to `path` and returns the response.
     ///
     /// `path` is almost always `/`. The exception is a wallet RPC on a node

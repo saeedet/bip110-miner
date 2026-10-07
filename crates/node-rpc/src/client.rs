@@ -88,6 +88,16 @@ impl RpcClient {
         })
     }
 
+    /// The same client, waiting up to `timeout` for each call.
+    ///
+    /// For the rare call that legitimately takes minutes: `loadtxoutset`
+    /// checks a whole UTXO snapshot before it answers.
+    #[must_use]
+    pub fn with_timeout(mut self, timeout: Duration) -> Self {
+        self.http = HttpClient::new(self.http.address(), timeout);
+        self
+    }
+
     /// Re-reads the cookie file.
     ///
     /// bitcoind generates a fresh cookie on every startup, so credentials read
