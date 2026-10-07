@@ -1,8 +1,8 @@
 # CLI design
 
-**Status: draft for review (Phase 0).** Applies to both `bip110-miner` and
-`btc-miner`. Mockups are drawn at exact terminal sizes; the numbers in them
-are illustrative.
+Applies to both `bip110-miner` and its sibling
+[`btc-miner`](https://github.com/saeedet/btc-miner). Mockups are drawn at exact
+terminal sizes, and the numbers in them are illustrative.
 
 ## Principles
 
