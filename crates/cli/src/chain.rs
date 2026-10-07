@@ -45,12 +45,12 @@ pub fn maturity_words(network: Network, height: u32) -> &'static str {
 ///
 /// BIP-110 shares Bitcoin's network, so a node's peers are a mix. Those on
 /// the fork advertise `NODE_BLAKE2B`, service bit 28.
-pub fn fork_peers(peers: &[Value]) -> Option<usize> {
+pub fn chain_peers(peers: &[Value]) -> Option<usize> {
     Some(peers.iter().filter(|peer| advertises_blake2b(peer)).count())
 }
 
-/// The label for [`fork_peers`]: `12 peers (9 BIP-110)`.
-pub const FORK_LABEL: &str = "BIP-110";
+/// The label for [`chain_peers`]: `12 peers (9 BIP-110)`.
+pub const CHAIN_LABEL: &str = "BIP-110";
 
 /// Whether a peer advertises `NODE_BLAKE2B`, the fork's service bit.
 pub fn advertises_blake2b(peer: &Value) -> bool {

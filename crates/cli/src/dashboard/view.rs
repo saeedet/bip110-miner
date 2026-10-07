@@ -159,7 +159,7 @@ fn node_line(state: &State, wide: bool) -> Vec<Span<'static>> {
         facts.push(format!("block {} of {}", grouped(node.blocks.into()), grouped(node.headers.into())));
     }
     facts.push(match (wide, node.chain_peers) {
-        (true, Some(ours)) => format!("{} peers ({ours} {})", node.peers, chain::FORK_LABEL),
+        (true, Some(ours)) => format!("{} peers ({ours} {})", node.peers, chain::CHAIN_LABEL),
         _ => format!("{} peers", node.peers),
     });
     // Catching up, the block count says more and needs the room.

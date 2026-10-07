@@ -214,7 +214,7 @@ fn node_status(settings: &Settings) -> NodeStatus {
         initial_download: info.initial_block_download,
         tip_time: info.time,
         peers: peers.len(),
-        chain_peers: chain::fork_peers(&peers),
+        chain_peers: chain::chain_peers(&peers),
         version: node::running_version(&client).map(node::version_string),
         disk_bytes: raw.get("size_on_disk").and_then(Value::as_f64),
     }
