@@ -1,7 +1,11 @@
 //! `bip110-miner setup` — save settings.
 //!
-//! For now this takes its answers as flags. A friendlier version that asks
-//! for whatever is missing, right in the terminal, replaces it.
+//! In a terminal and with nothing else given, it walks through the setup
+//! checklist and asks where rewards go, even if an address is already set —
+//! which makes it the way to change it. With flags, it saves them directly,
+//! for scripts and anywhere without a terminal.
+
+use std::io::IsTerminal;
 
 use node_rpc::Network;
 
@@ -48,6 +52,18 @@ pub fn run(changes: &Changes, settings: &config::Settings) -> Result<(), String>
     if let Some(power) = changes.power {
         file.power = Some(power);
         said.push(format!("power     {}", power.name()));
+    }
+
+    // Nothing but perhaps a network: ask, interactively, where possible.
+    if changes.address.is_none() && changes.power.is_none() && std::io::stdout().is_terminal() {
+        if !said.is_empty() {
+            file.save(&path)?;
+        }
+        let mut settings = settings.clone();
+        if let crate::setup::Outcome::Ready = crate::setup::run(&mut settings, true)? {
+            println!("all set — run `bip110-miner` to mine");
+        }
+        return Ok(());
     }
 
     if said.is_empty() {

@@ -86,6 +86,7 @@ dependencies = [
  "ratatui",
  "serde",
  "serde_json",
+ "sha256",
  "toml",
 ]
 

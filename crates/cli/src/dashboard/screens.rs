@@ -48,7 +48,7 @@ pub fn help(state: &State, width: usize, height: usize) -> Vec<Line<'static>> {
     frame.blank();
     let text_width = frame.inner().saturating_sub(15);
     for (name, paragraph) in topics {
-        for (index, line) in wrap(&paragraph, text_width).into_iter().enumerate() {
+        for (index, line) in format::wrap(&paragraph, text_width).into_iter().enumerate() {
             let name = if index == 0 { name } else { "" };
             frame.row(vec![Span::raw(format!("  {name:<11}")).bold(), Span::raw(line)]);
         }
@@ -56,23 +56,6 @@ pub fn help(state: &State, width: usize, height: usize) -> Vec<Line<'static>> {
     }
     frame.fill_to(height, 1);
     frame.bottom("esc close")
-}
-
-/// Breaks `text` into lines of at most `columns`, between words.
-fn wrap(text: &str, columns: usize) -> Vec<String> {
-    let mut lines = vec![String::new()];
-    for word in text.split_whitespace() {
-        let line = lines.last_mut().expect("never empty");
-        if !line.is_empty() && line.chars().count() + 1 + word.chars().count() > columns {
-            lines.push(word.to_owned());
-        } else {
-            if !line.is_empty() {
-                line.push(' ');
-            }
-            line.push_str(word);
-        }
-    }
-    lines
 }
 
 /// The block-found screen.

@@ -27,13 +27,17 @@ terminal sizes, and the numbers in them are illustrative.
 ```
 bip110-miner
   │
-  ├─ checklist   This Mac · Node software · Blockchain · Reward address
+  ├─ checklist   This computer · Node software · Reward address · Blockchain
   │      └─ anything missing or out of date? → ask about it, right there
   │
   ├─ blockchain not caught up? → progress screen; mining starts on its own
   │
   └─ dashboard
 ```
+
+The reward address is asked before the blockchain sync on purpose: the sync
+can take hours, and a newcomer should be able to answer everything and then
+walk away.
 
 The next run with everything in place goes straight to the dashboard. If
 something later needs attention — the node is out of date, the address file
@@ -54,16 +58,16 @@ written by the CLI. Nobody has to open it.
 │                                                                              │
 │  I'll only ask about what isn't set up yet.                                  │
 │                                                                              │
-│    ✔  This Mac          Apple M3 · 8 cores · 146 GB free                     │
+│    ✔  This computer     Apple M3 · 8 cores · 146 GB free                     │
 │    ●  Node software     not installed                       ← now            │
-│    ○  Blockchain        not downloaded                                       │
 │    ○  Reward address    not set                                              │
+│    ○  Blockchain        not downloaded                                       │
 │                                                                              │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │  The node is the program that talks to the BIP-110 network and checks        │
 │  every block for itself. It's called Bitcoin Knots, and it's free.           │
 │                                                                              │
-│    ▸ Download the official build and verify its signature    (36 MB)         │
+│    ▸ Download Knots 29.4.2 and check it's the official file    (37 MB)       │
 │      I'll install it myself — show me how                                    │
 │                                                                              │
 │                                                                              │
@@ -72,6 +76,12 @@ written by the CLI. Nobody has to open it.
 │                                                                              │
 ╰─ ↑↓ choose · enter confirm · ? why · q quit ─────────────────────────────────╯
 ```
+
+"Check it's the official file" means the download must match, byte for byte,
+a SHA-256 built into the program. That hash was taken from Knots' signed
+`SHA256SUMS` after verifying the signature against the maintainer's key, so a
+newcomer needs no GnuPG. Supporting a newer Knots takes a new release of this
+program — the review a consensus-critical update deserves anyway.
 
 ### 2. Something needs attention later
 
@@ -82,10 +92,10 @@ that hasn't been updated could build blocks the network rejects.
 ```
 ╭─ bip110-miner · needs attention ─────────────────────────────────────────────╮
 │                                                                              │
-│    ✔  This Mac          Apple M3 · 8 cores · 146 GB free                     │
+│    ✔  This computer     Apple M3 · 8 cores · 146 GB free                     │
 │    ●  Node software     Knots 29.4.1 — out of date          ← now            │
-│    ✔  Blockchain        in sync                                              │
 │    ✔  Reward address    bc1qw50…f3t4                                         │
+│    ✔  Blockchain        in sync                                              │
 │                                                                              │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │  The network changed a rule at block 973,440, and this version of Knots      │
@@ -95,7 +105,7 @@ that hasn't been updated could build blocks the network rejects.
 │  What changed: newly mined coins now wait about 45 days (6,480 blocks)       │
 │  before they can be spent, instead of about 16 hours.                        │
 │                                                                              │
-│    ▸ Update to Knots 29.4.2 and verify its signature     (36 MB)             │
+│    ▸ Update to Knots 29.4.2 and check it's the official file    (37 MB)      │
 │      Show me the release notes first                                         │
 │      Not now — quit                                                          │
 │                                                                              │
@@ -109,12 +119,12 @@ that hasn't been updated could build blocks the network rejects.
 ### 3. Where rewards go
 
 ```
-╭─ bip110-miner · getting set up ───────────────────────────────────── 4 of 4 ─╮
+╭─ bip110-miner · getting set up ───────────────────────────────────── 3 of 4 ─╮
 │                                                                              │
-│    ✔  This Mac          Apple M3 · 8 cores · 146 GB free                     │
+│    ✔  This computer     Apple M3 · 8 cores · 146 GB free                     │
 │    ✔  Node software     Knots 29.4.2 (signature verified)                    │
-│    ✔  Blockchain        in sync                                              │
 │    ●  Reward address    not set                              ← now           │
+│    ○  Blockchain        not downloaded yet                                   │
 │                                                                              │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │  If your Mac ever finds a block, the reward goes to an address you own.      │

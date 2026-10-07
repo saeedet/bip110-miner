@@ -1,0 +1,24 @@
+╭─ bip110-miner · getting set up ───────────────────────────────────── 3 of 4 ─╮
+│                                                                              │
+│    ✔  This computer    Apple M3 · 8 cores · 146 GB free                      │
+│    ✔  Node software    Knots 29.4.2                                          │
+│    ●  Reward address   not set   ← now                                       │
+│    ○  Blockchain       starting the node…                                    │
+│                                                                              │
+├──────────────────────────────────────────────────────────────────────────────┤
+│  If your computer ever finds a block, the reward goes to an address you      │
+│  own.                                                                        │
+│                                                                              │
+│  For BIP-110 coins, the safest home is a wallet on this node. A normal       │
+│  Bitcoin wallet app will accept the address, but can't spend the coins.      │
+│                                                                              │
+│    ▸ Create a wallet here, protected by a passphrase   (recommended)         │
+│      I already have a BIP-110 address — let me paste it                      │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+╰─ ↑↓ choose · enter confirm · q quit ─────────────────────────────────────────╯

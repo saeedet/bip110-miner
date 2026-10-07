@@ -1,0 +1,24 @@
+╭─ bip110-miner · getting set up ───────────────────────────────────── 2 of 4 ─╮
+│                                                                              │
+│    ✔  This computer    Apple M3 · 8 cores · 146 GB free                      │
+│    ●  Node software    not installed   ← now                                 │
+│    ○  Reward address                                                         │
+│    ○  Blockchain                                                             │
+│                                                                              │
+├──────────────────────────────────────────────────────────────────────────────┤
+│  The node is the program that talks to the BIP-110 network and checks every  │
+│  block for itself. It's called Bitcoin Knots, and it's free.                 │
+│                                                                              │
+│    ▸ Download Knots 29.4.2 and check it's the official file    (37 MB)       │
+│      I'll install it myself — show me how                                    │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+╰─ ↑↓ choose · enter confirm · q quit ─────────────────────────────────────────╯

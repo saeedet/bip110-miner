@@ -103,6 +103,30 @@ pub fn coins(sats: u64) -> String {
     text.trim_end_matches('0').trim_end_matches('.').to_owned()
 }
 
+/// Breaks `text` into lines of at most `columns`, between words.
+pub fn wrap(text: &str, columns: usize) -> Vec<String> {
+    let mut lines = vec![String::new()];
+    // A word longer than a whole line — a file path, say — is cut into
+    // pieces, rather than running off the edge.
+    let pieces = text.split_whitespace().flat_map(|word| {
+        let chars: Vec<char> = word.chars().collect();
+        chars.chunks(columns.max(1)).map(|chunk| chunk.iter().collect::<String>()).collect::<Vec<_>>()
+    });
+    for word in pieces {
+        let word = word.as_str();
+        let line = lines.last_mut().expect("never empty");
+        if !line.is_empty() && line.chars().count() + 1 + word.chars().count() > columns {
+            lines.push(word.to_owned());
+        } else {
+            if !line.is_empty() {
+                line.push(' ');
+            }
+            line.push_str(word);
+        }
+    }
+    lines
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

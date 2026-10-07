@@ -6,7 +6,7 @@
 //! the same events the plain output prints.
 
 pub mod format;
-mod frame;
+pub mod frame;
 mod screens;
 mod state;
 mod view;
@@ -47,6 +47,8 @@ pub struct Session<'a> {
     pub finished: &'a dyn Fn() -> bool,
     /// Whether the machine is being kept awake.
     pub keeping_awake: bool,
+    /// Anything worth saying before the first event arrives.
+    pub notes: Vec<String>,
 }
 
 /// How the dashboard ended.
@@ -68,6 +70,9 @@ pub fn run(session: Session<'_>) -> Result<Outcome, String> {
     state.note(Level::Info, format!("{} {} started", chain::PROGRAM, env!("CARGO_PKG_VERSION")));
     if session.keeping_awake {
         state.note(Level::Info, "keeping this computer awake while mining (--allow-sleep to turn this off)");
+    }
+    for note in &session.notes {
+        state.note(Level::Warn, note.clone());
     }
 
     let (node_updates, node_rx) = channel();

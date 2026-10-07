@@ -41,6 +41,29 @@ pub struct Options {
 
 /// Runs the command.
 pub fn run(settings: &Settings, options: &Options) -> Result<(), String> {
+    let live = !options.plain && std::io::stdout().is_terminal();
+
+    // In a terminal, anything missing is asked about right here.
+    let mut settings = settings.clone();
+    if live {
+        match crate::setup::run(&mut settings, false)? {
+            crate::setup::Outcome::Ready => {}
+            crate::setup::Outcome::Quit => return Ok(()),
+        }
+    }
+    // The mining port, moved along if something already holds it.
+    let mut notes = Vec::new();
+    if std::net::TcpListener::bind(settings.listen).is_err() {
+        let busy = settings.listen.port();
+        let free = crate::platform::free_port_from(busy + 1).ok_or_else(|| format!("port {busy} and the next few are all in use"))?;
+        settings.listen.set_port(free);
+        notes.push(format!(
+            "port {busy} is in use — perhaps another copy of {} — so miners connect on {free} this time",
+            crate::chain::PROGRAM
+        ));
+    }
+    let settings = &settings;
+
     // Real money needs a deliberate address. Regtest makes its own.
     if settings.address.is_none() && settings.network != Network::Regtest {
         return Err(format!(
@@ -51,7 +74,6 @@ pub fn run(settings: &Settings, options: &Options) -> Result<(), String> {
 
     ensure_node(settings)?;
 
-    let live = !options.plain && std::io::stdout().is_terminal();
     let (sender, events) = channel();
     let output: Arc<dyn Sink> = if live { Arc::new(Channel::new(sender)) } else { Arc::new(Plain) };
     let sink = Arc::new(Watch::new(output));
@@ -60,6 +82,11 @@ pub fn run(settings: &Settings, options: &Options) -> Result<(), String> {
     handle_signals(&stop_pool, &controls, !live)?;
 
     // A laptop that idles to sleep stops mining without a word.
+    if !live {
+        for note in &notes {
+            println!("{note}");
+        }
+    }
     let awake = options.keep_awake.then(KeepAwake::start);
     let keeping_awake = awake.as_ref().is_some_and(KeepAwake::active);
     if keeping_awake && !live {
@@ -80,6 +107,7 @@ pub fn run(settings: &Settings, options: &Options) -> Result<(), String> {
             controls: Arc::clone(&controls),
             finished: &|| session.is_finished(),
             keeping_awake,
+            notes,
         })
     });
 

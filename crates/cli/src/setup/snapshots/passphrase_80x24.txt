@@ -1,0 +1,24 @@
+╭─ bip110-miner · getting set up ───────────────────────────────────── 3 of 4 ─╮
+│                                                                              │
+│    ✔  This computer    Apple M3 · 8 cores · 146 GB free                      │
+│    ✔  Node software    Knots 29.4.2                                          │
+│    ●  Reward address   creating a wallet   ← now                             │
+│    ○  Blockchain                                                             │
+│                                                                              │
+├──────────────────────────────────────────────────────────────────────────────┤
+│  Choose a passphrase. It encrypts the wallet stored on this computer.        │
+│                                                                              │
+│      Passphrase     ••••••••••••••                                           │
+│      Once more      ••••••••••••••   ✔ match                                 │
+│                                                                              │
+│  • You only need it to SPEND rewards, never to mine.                         │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+╰─ enter continue · esc back ──────────────────────────────────────────────────╯
