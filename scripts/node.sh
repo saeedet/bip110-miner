@@ -2,9 +2,10 @@
 #
 # node.sh — control the BLAKE2b-fork node this project uses.
 #
-# The binary is Bitcoin Knots built from source, because no package manager
-# ships it and the BLAKE2b proof-of-work only exists in that fork. Point
-# BIP110_KNOTS at the build if it lives somewhere other than the default.
+# The node is Bitcoin Knots, the only implementation of this fork. It is
+# expected under ~/.bip110-miner/knots/current/bin: the official signed macOS
+# release, checked against the maintainer's signature before installing. Point
+# BIP110_KNOTS elsewhere to use a different build, such as one from source.
 #
 # A DEDICATED data directory (~/.bip110) keeps this entirely separate from any
 # Bitcoin node on the machine. That matters more than usual here: this fork
@@ -27,11 +28,11 @@ NETWORK="${2:-regtest}"
 
 DATADIR="${BIP110_DATADIR:-$HOME/.bip110}"
 CONF="$REPO_ROOT/config/bip110.$NETWORK.conf"
-KNOTS="${BIP110_KNOTS:-$HOME/Projects/bitcoinknots/build/bin}"
+KNOTS="${BIP110_KNOTS:-$HOME/.bip110-miner/knots/current/bin}"
 
 die() { echo "error: $*" >&2; exit 1; }
 
-[[ -x "$KNOTS/bitcoind" ]] || die "no bitcoind at $KNOTS. Build Knots, or set BIP110_KNOTS."
+[[ -x "$KNOTS/bitcoind" ]] || die "no bitcoind at $KNOTS. Install Bitcoin Knots there, or set BIP110_KNOTS."
 [[ -f "$CONF" ]] || die "no config for network '$NETWORK' (expected $CONF)"
 
 ARGS=(-datadir="$DATADIR" -conf="$CONF")

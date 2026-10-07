@@ -21,6 +21,7 @@ node's own source at tag `v29.4.1.knots20260508`, not from a blog post:
 | Activation | `Blake2bHeight = 961640` (mainnet), `150308` (**testnet4**), configurable on regtest |
 | Difficulty easing | `Blake2bTargetShift = 22` — a ~4.2-million-fold easing at the fork |
 | Fork message | `"8-30 NYPost Deride And Conquer"` — this chain's genesis-style headline |
+| Minimum node | **Knots 29.4.2** — earlier versions don't know the coinbase-maturity soft fork that activated at block 973,440 |
 
 Checkpointed in the release, which settles that the chain really produced
 blocks:
@@ -157,9 +158,10 @@ Four rules a Bitcoin miner does not have, all of them found by reading
 | The v2 header's `txcount` must equal the real transaction count | `bad-txnlist-size` |
 | At *exactly* the activation height, the coinbase `scriptSig` must contain the chain's headline | `bad-headline` |
 | From the activation height until RDTS expires, block weight is capped at 800,000 rather than 4,000,000 | `bad-blk-weight-reduced_data` |
+| From block 973,440 (Knots 29.4.2), a coinbase needs 6,480 confirmations — about 45 days — before it can be spent, not 100 | `bad-txns-premature-spend-of-coinbase` |
 
-The last one comes free if you build from the node's template, since the node
-applies the cap when assembling it.
+The last two come free if you build from the node's template, since the node
+applies both when assembling it — provided the node is new enough to know them.
 
 Two things about the nonce space are worth knowing before writing a search
 loop. Above the fork there are **128 grindable bits**, not 32 — `nonce`,

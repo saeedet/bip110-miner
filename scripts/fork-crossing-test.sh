@@ -21,7 +21,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-KNOTS="${BIP110_KNOTS:-$HOME/Projects/bitcoinknots/build/bin}"
+KNOTS="${BIP110_KNOTS:-$HOME/.bip110-miner/knots/current/bin}"
 HEADLINE="fork crossing test"
 FORK_HEIGHT=5
 BLOCKS=8
