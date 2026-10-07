@@ -3,7 +3,7 @@
 A solo miner for the **BIP-110 / BLAKE2b Bitcoin hard fork** (ticker BTCB2),
 written from scratch in Rust, running against a local node.
 
-It is the sibling of [solo-mac-miner](https://github.com/saeedet/mac-solo-miner),
+It is the sibling of [btc-miner](https://github.com/saeedet/btc-miner),
 which does the same for Bitcoin. That project's expected time to a block is
 ~180 million years. This one's is not, and that is the whole reason it exists.
 
