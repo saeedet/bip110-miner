@@ -5,6 +5,7 @@
 
 use std::net::TcpListener;
 
+use node_rpc::Network;
 use serde_json::{Value, json};
 
 use super::status::advertises_blake2b;
@@ -90,6 +91,10 @@ pub fn run(settings: &Settings) -> Result<(), String> {
     let peers: Option<Vec<Value>> = client.as_ref().and_then(|client| client.call("getpeerinfo", json!([])).ok());
     report("peers", match &peers {
         None => Outcome::Skipped("needs the node".into()),
+        // A regtest chain exists only on this machine, so there is nobody to meet.
+        Some(peers) if peers.is_empty() && settings.network == Network::Regtest => {
+            Outcome::Ok("none, as expected on regtest".into())
+        }
         Some(peers) if peers.is_empty() => Outcome::Problem {
             found: "none".into(),
             fix: "check the internet connection".into(),
@@ -108,6 +113,9 @@ pub fn run(settings: &Settings) -> Result<(), String> {
     });
 
     report("reward address", match (&settings.address, &client) {
+        (None, _) if settings.network == Network::Regtest => {
+            Outcome::Ok("not needed: regtest coins are worthless, so a throwaway address is used".into())
+        }
         (None, _) => Outcome::Problem {
             found: "not set".into(),
             fix: "`bip110-miner setup --address <your address>`".into(),

@@ -5,6 +5,7 @@
 //! `getblockchaininfo` only ever describes the first — so without this, several
 //! hundred gigabytes of background work is invisible.
 
+use node_rpc::Network;
 use serde_json::{Value, json};
 
 use super::{grouped, short_address};
@@ -52,6 +53,7 @@ pub fn run(settings: &Settings) -> Result<(), String> {
 
     match &settings.address {
         Some(address) => println!("reward    {}", short_address(address)),
+        None if settings.network == Network::Regtest => println!("reward    a throwaway address (regtest)"),
         None => println!("reward    not set — `bip110-miner setup --address <address>`"),
     }
     Ok(())
