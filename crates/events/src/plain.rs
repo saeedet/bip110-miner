@@ -65,7 +65,7 @@ pub fn render(event: &Event) -> Vec<(Stream, String)> {
         ],
         Event::Listening { listen } => out(format!("waiting for miners on {listen}")),
         Event::WaitingForNode { reason } => out(format!("waiting for the node: {reason}")),
-        Event::NewJob { height, job_id, transactions, miners } => out(format!(
+        Event::NewJob { height, job_id, transactions, miners, .. } => out(format!(
             "new tip at height {} — job {job_id} ({transactions} txs, {miners} miners)",
             height.saturating_sub(1),
         )),
@@ -196,7 +196,7 @@ mod tests {
     #[test]
     fn pool_lines_match_the_originals() {
         assert_eq!(
-            text(Event::NewJob { height: 18, job_id: "1".into(), transactions: 0, miners: 0 }),
+            text(Event::NewJob { height: 18, job_id: "1".into(), transactions: 0, miners: 0, reward: 0 }),
             "new tip at height 17 — job 1 (0 txs, 0 miners)"
         );
         assert_eq!(text(Event::PoolReady), "POOL READY — first job built, serving miners");

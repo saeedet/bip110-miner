@@ -352,6 +352,7 @@ fn poll_templates(
                                     job_id: job.job.job_id.clone(),
                                     transactions,
                                     miners: state.subscriber_count(),
+                                    reward: template.coinbase_value,
                                 });
 
                                 // Say plainly when the chain's clock is being

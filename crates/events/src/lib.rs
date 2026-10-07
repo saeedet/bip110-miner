@@ -82,6 +82,8 @@ pub enum Event {
         transactions: usize,
         /// Miners connected when it went out.
         miners: usize,
+        /// What the block pays if found: subsidy plus fees, in satoshis.
+        reward: u64,
     },
     /// The job was built for testnet4's minimum-difficulty window.
     MinimumDifficulty {
