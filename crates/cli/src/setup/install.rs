@@ -144,7 +144,7 @@ fn install(wizard: &mut Wizard, settings: &mut Settings) -> Result<Answer<()>, S
     let installed = unpack(&archive)?;
     settings.binaries = installed.join("bin");
     let version = node::installed_version(settings)?;
-    if version < node::MIN_KNOTS {
+    if version < node::MIN_VERSION {
         return Err(format!("the installed Knots reports version {}", node::version_string(version)));
     }
     Ok(Answer::Given(()))

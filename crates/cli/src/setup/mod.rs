@@ -66,10 +66,10 @@ pub fn run(settings: &mut Settings, ask_address: bool) -> Result<Outcome, String
 
 /// Whether there is nothing to ask, so setup need not show at all.
 fn already_ready(settings: &Settings) -> bool {
-    let software = node::installed_version(settings).is_ok_and(|version| version >= node::MIN_KNOTS);
+    let software = node::installed_version(settings).is_ok_and(|version| version >= node::MIN_VERSION);
     let Ok(client) = node::client(settings) else { return false };
     let Ok(info) = client.get_blockchain_info() else { return false };
-    let current = node::running_version(&client).is_none_or(|version| version >= node::MIN_KNOTS);
+    let current = node::running_version(&client).is_none_or(|version| version >= node::MIN_VERSION);
     let address = settings.network == Network::Regtest || settings.address.is_some();
     let synced = settings.network == Network::Regtest
         || (!info.initial_block_download && info.headers > 0 && info.headers <= info.blocks + 2);
@@ -100,7 +100,7 @@ fn steps(wizard: &mut Wizard, settings: &mut Settings, ask_address: bool) -> Res
     // 2. Node software.
     wizard.set(SOFTWARE, Mark::Now, "checking…");
     let found = node::installed_version(settings).ok();
-    if found.is_none_or(|version| version < node::MIN_KNOTS) {
+    if found.is_none_or(|version| version < node::MIN_VERSION) {
         wizard.set(SOFTWARE, Mark::Now, found.map_or("not installed".to_owned(), |v| {
             format!("{} {} — out of date", chain::NODE_NAME, node::version_string(v))
         }));
@@ -158,7 +158,7 @@ fn start_node(wizard: &mut Wizard, settings: &mut Settings) -> Result<Answer<()>
     if node::is_running(settings) {
         let client = node::client(settings)?;
         match node::running_version(&client) {
-            Some(version) if version < node::MIN_KNOTS => {
+            Some(version) if version < node::MIN_VERSION => {
                 let body = [Part::Text(format!(
                     "The node running now is {} {}, started before the update. Restarting it on the new version…",
                     chain::NODE_NAME,

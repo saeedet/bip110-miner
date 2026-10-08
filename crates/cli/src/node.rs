@@ -24,6 +24,9 @@ use crate::platform;
 /// invalid. Refusing to mine is the only safe response.
 pub const MIN_KNOTS: (u32, u32, u32) = (29, 4, 2);
 
+/// The minimum under the name shared code uses, whichever node this is.
+pub use self::MIN_KNOTS as MIN_VERSION;
+
 /// The node's configuration for each network, compiled in so an installed
 /// binary does not depend on the source tree.
 fn template(network: Network) -> &'static str {

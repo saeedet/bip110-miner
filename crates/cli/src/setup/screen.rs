@@ -35,7 +35,7 @@ pub struct Item {
     pub name: &'static str,
     /// How it stands.
     pub mark: Mark,
-    /// What was found: `Knots 29.4.2`.
+    /// What was found, such as the node version.
     pub detail: String,
 }
 
