@@ -15,28 +15,9 @@ the same for Bitcoin itself.
 > difficulty. There is no partial credit and no slow drip of earnings. Run it
 > because it's interesting to watch your own computer take part, not to earn.
 
-```
-╭─ bip110-miner ────────────────────────────── MAINNET · 14:23 UTC · up 2h14m ─╮
-│  NODE  ● in sync · block 976,034 · 12 peers · Knots 29.4.2 · 5.1 GB          │
-├─ MINING ─────────────────────────────────────────────────────────────────────┤
-│   26.1 MH/s  ████████████████████████████████████  last 10 min               │
-│   power  ● balanced (6 of 8 cores)         job: block 976,035 · 203 txs      │
-├─ YOUR CHANCES ───────────────────────────────────────────────────────────────┤
-│   This session    about 1 in 24 million of finding a block                   │
-│   On average      one block every ≈ 5,945 years at this speed                │
-│   Best hash yet   28 of the 62 zero bits needed                              │
-│                   (each missing bit doubles it: 2³⁴ ≈ 17 billion× short)     │
-├─ ALL TIME ───────────────────────────────────────────────────────────────────┤
-│   3.04T hashes · 12 sessions · best ever 34 zero bits                        │
-│   rewards to bc1qw508…f3t4 · spendable 45 days after a block is found        │
-├─ RECENT ─────────────────────────────────────────────────────────────────────┤
-│   14:22  someone else found block 976,034 → new job, nothing lost            │
-│   14:15  someone else found block 976,033 → new job, nothing lost            │
-│   14:12  new personal best: 28 zero bits                                     │
-╰─ q quit · p pause · +/- power · ? what am I looking at ──────────────────────╯
-```
+![The live dashboard, mining BIP-110 mainnet](docs/images/dashboard.png)
 
-*The live dashboard. The numbers here are illustrative.*
+*The live dashboard, mining BIP-110 mainnet on an 8-core M3 Mac. The reward address is hidden.*
 
 ## What you need
 
