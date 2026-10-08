@@ -2,8 +2,8 @@
 //!
 //! Brings up whatever is missing — the node, then the pool, then the miner —
 //! in one process, and stops the pool and miner together on `q` or Ctrl-C.
-//! The pool still listens on its usual port, so other mining hardware can
-//! join in.
+//! The pool listens on this computer only (127.0.0.1), so nothing on the
+//! network can reach it.
 //!
 //! In a terminal this shows the live dashboard. Anywhere else — a log file, a
 //! service, a pipe — or with `--plain`, it prints the same events as lines.
