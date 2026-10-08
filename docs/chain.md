@@ -1,0 +1,302 @@
+# The BIP-110 chain, for miners
+
+Everything this project had to learn about the chain it mines, and how each
+rule shows up in the code. For using the program, see the
+[README](../README.md); for how the code fits together, see
+[architecture.md](architecture.md).
+
+## What this chain is
+
+A minority hard fork that split from Bitcoin at **block 961,632** on 8 August
+2026 and replaced SHA-256d with BLAKE2b. Every value below was read out of the
+node's own source at tag `v29.4.1.knots20260508`, not from a blog post:
+
+| | |
+|---|---|
+| Node software | [`bitcoinknots/bitcoin`](https://github.com/bitcoinknots/bitcoin) — a Bitcoin Core fork, so `getblocktemplate` / `submitblock` survive |
+| Proof of work | A **five-stage pipeline** using *both* SHA-256 and BLAKE2b — see [docs/proof-of-work.md](proof-of-work.md). Not a drop-in hash swap |
+| Header | **164-byte "v2"**, flagged by `0x80000000` in the version field |
+| Activation | `Blake2bHeight = 961640` (mainnet), `150308` (**testnet4**), configurable on regtest |
+| Difficulty easing | `Blake2bTargetShift = 22` — a ~4.2-million-fold easing at the fork |
+| Fork message | `"8-30 NYPost Deride And Conquer"` — this chain's genesis-style headline |
+| Minimum node | **Knots 29.4.2** — earlier versions don't know the coinbase-maturity soft fork that activated at block 973,440 |
+
+Checkpointed in the release, which settles that the chain really produced
+blocks:
+
+```
+961632  first BIP110 block
+961639  last SHA256d block
+961640  first BLAKE2b block   0000000000000050c1e5f69672f459293be14f46e5a494e7a8c8541396f18eeb
+```
+
+## Why the header grew from 80 bytes to 164
+
+Not vanity. The upstream change lists the reasons: 128 bits of ASIC nonce plus
+128 bits of machine nonce, an opt-in fix for block withholding, room for merge
+mining, and a transaction-count commitment that properly fixes CVE-2017-12842.
+
+Its serialised v2 field order, from `SERIALIZE_METHODS` in `primitives/block.h`:
+
+```
+nVersion  hashPrevBlock  hashMerkleRoot  nTime  nBits  nNonce
+m_nonce2  m_nonce3  m_extranonce  m_time_offset  m_txcount
+m_flags  m_xor_key_mask_clear_bits  m_xor_key  m_height  m_mm_rhs
+```
+
+**The consequence that matters most for a miner:** the extranonce lives *in the
+header*. On Bitcoin, rolling the extranonce means rebuilding the coinbase, which
+changes its txid, which changes the merkle root. Here the merkle root never
+moves. That is simpler, and it changes what a pool has to send a miner.
+
+## One P2P network, two chains
+
+The fork changed neither the network magic nor the default ports. Mainnet is
+still `f9beb4d9` on 8333, testnet4 still `1c163f28` on 48333, and both use
+Bitcoin's own DNS seeds. Nodes on either side of the fork therefore meet
+constantly, and a datadir mix-up does not fail loudly — it produces a node that
+starts, connects, and quietly disagrees about which chain is real. Hence the
+dedicated `~/.bip110`.
+
+What keeps the two apart is a **service bit**, `NODE_BLAKE2B = 1 << 28`. Knots
+prefers peers advertising it for the first outbound-full-relay slots, demotes
+those without it to an extra connection rather than a counted one, and drives
+its DNS-seed cadence off how many it knows about. The hardfork-aware seeds
+answer the `x10000009` prefix — `NETWORK | WITNESS | BLAKE2B`.
+
+That prefix makes the fork's health measurable with a DNS query and no node at
+all. Measured 2026-09-07:
+
+| Seed | any (`x9`) | BLAKE2b (`x10000009`) |
+|---|---|---|
+| `seed.bitcoin.haf.ovh` | 25 | **25** |
+| `dnsseed.bitcoin.dashjr-list-of-p2p-nodes.us` | 22 | **22** |
+| `seed.bitcoin.sipa.be` | 25 | 0 — filter unsupported |
+| `seed.testnet4.bitcoin.sprovoost.nl` | 22 | **0** |
+| `seed.testnet4.wiz.biz` | 0 | 0 — filter unsupported |
+| `seed.testnet-bitcoin.haf.ovh` | 1 | **1** |
+
+Read the zeroes carefully: a seed that does not support the prefix returns
+nothing either way, so only a seed with a non-zero `x9` count says anything. By
+that standard mainnet is healthy and **testnet4 has exactly one reachable
+BLAKE2b peer** — Sjors Provoost's seed supports filtering, knows 22 testnet4
+nodes, and finds none of them on this side of the fork.
+
+Version handshakes against those peers, same day:
+
+```
+mainnet   38.102.85.36:8333    /Satoshi:29.4.1/Knots:20260508/     height 968974
+testnet4  82.67.102.15:48333   /Satoshi:29.4.1/Knots:20260508rc4/  height 150601
+```
+
+Both chains are alive. Bitcoin's own mainnet was at 965,905 the same day, so
+the BLAKE2b chain is **ahead** — 7,334 blocks in the eight days since
+activation, roughly six times the ten-minute target, because the 2²² target
+shift left difficulty far below the hashpower that turned up.
+
+## Honest assessment
+
+**As engineering, this is more interesting than mining Bitcoin.** BLAKE2b has no
+hardware acceleration on any consumer machine, but it is fast in software by
+design — so a CPU is not competing against a decade of dedicated silicon. This
+is no longer a claim: on 2026-09-07 this project mined testnet4 block 150,616
+on six cores, and the network took it.
+
+Measured throughput, `cargo run --release --example hashrate -p mining`:
+
+| Threads | Rate |
+|---|---|
+| 1 | 5.31 MH/s |
+| 2 | 10.20 MH/s |
+| 4 | 19.77 MH/s |
+| 8 | 26.14 MH/s |
+
+The five stages are now checked against real mainnet blocks —
+`crates/bip110-primitives/tests/mainnet_blocks.rs` reproduces the hashes of five
+of them, including 961,640, the fork block itself, and confirms each meets the
+target it claims.
+
+**As an investment it is close to worthless.** The fork drew about 2.53% miner
+support. One small beta exchange listed it with bids near $82 against asks near
+$190 — a spread over 130%, which is another way of saying it cannot be sold. No
+major exchange, wallet, or Lightning implementation has committed to it. The
+chain managed four blocks in its first week before being restarted.
+
+Those are separate questions. Watching your own code win a real block is a good
+reason to do this. Expecting to sell the proceeds is not.
+
+## What mining this chain actually requires
+
+Four rules a Bitcoin miner does not have, all of them found by reading
+`validation.cpp` rather than by guessing:
+
+| Rule | What happens if you miss it |
+|---|---|
+| The client must declare the `blake2b` rule to `getblocktemplate` | RPC error −8; no template at all |
+| The v2 header's `txcount` must equal the real transaction count | `bad-txnlist-size` |
+| At *exactly* the activation height, the coinbase `scriptSig` must contain the chain's headline | `bad-headline` |
+| From the activation height until RDTS expires, block weight is capped at 800,000 rather than 4,000,000 | `bad-blk-weight-reduced_data` |
+| From block 973,440 (Knots 29.4.2), a coinbase needs 6,480 confirmations — about 45 days — before it can be spent, not 100 | `bad-txns-premature-spend-of-coinbase` |
+
+The last two come free if you build from the node's template, since the node
+applies both when assembling it — provided the node is new enough to know them.
+
+Two things about the nonce space are worth knowing before writing a search
+loop. Above the fork there are **128 grindable bits**, not 32 — `nonce`,
+`nonce2`, `nonce3`, and `time_offset`, none of which touch the merkle root, so
+the coinbase never has to be rebuilt. `time_offset` qualifies because the flag
+that would make it consensus-relevant is ours to leave clear, and nothing in
+validation constrains it otherwise; `scripts/fork-crossing-test.sh` mines with
+it non-zero on every run so that claim keeps being tested rather than trusted.
+
+Below the fork there is **one** word again, and rolling the other three is not
+merely useless — they are not serialised, so a search that rolls them
+recomputes a single hash until its budget runs out. No error, no block.
+
+## What Stratum V1 looks like on this chain
+
+Stratum predates the fork by fifteen years and still fits, which turns out to
+be the clearest way to see what changed. `mining.notify` keeps all nine of its
+positional parameters. Two of them go **empty**.
+
+| Slot | Bitcoin | Here |
+|---|---|---|
+| `prevhash` | the previous block hash | `prevblock_hidden`, first 6 bytes blanked |
+| `coinb1` | coinbase bytes before the extranonce | a zero word, then `h2` — every consensus field, digested |
+| `coinb2` | coinbase bytes after the extranonce | **empty** |
+| `merkle_branch` | the path from the coinbase leaf to the root | **empty** |
+| `version` | the header version | the four stage-4 layout flags |
+| `nbits` | the block's target | unchanged |
+| `ntime` | the header timestamp | `time_offset` — a full 32 free bits |
+| `clean_jobs` | discard older jobs | unchanged |
+
+`coinb2` and `merkle_branch` exist so a miner can splice an extranonce into the
+middle of the coinbase and then repair the merkle root. This fork put the
+extranonce in the header, so there is nothing to splice and nothing to repair.
+The pool's job builder loses the sentinel search, the split, the branch, and
+the runtime cross-check that guards all three in the sibling Bitcoin project.
+
+The mapping is not invented here. The node's own source says where these bytes
+belong, in `primitives/block.cpp`:
+
+```
+// These fields get sent to mining machines over Sv1
+ss << (uint32_t)0;   // Final 3 bytes are part of Sv1 "coinb1"
+ss << h2_hash;       // Remainder of Sv1 "coinb1"
+ss << m_extranonce;  // Sv1 "extranonce"
+```
+
+### What a miner is not told
+
+Not the block version, the timestamp, the merkle root, or the real previous
+block hash — all folded into `h2` before the job exists. The source is explicit
+that this is the goal: *"the hasher cannot brick itself at some future block
+version, time, or difficulty."*
+
+Nor the XOR mask, and that one cuts the other way. A pool publishes the *hash*
+of its XOR key and keeps the key, so a miner can see that a share is good but
+not that it is a block — which makes block withholding impossible rather than
+merely detectable. A solo miner is its own pool and uses a null key, so no mask
+exists.
+
+The two words with no Stratum slot, `nonce2` and `nonce3`, simply stay zero.
+Between the 32-bit nonce, the 32-bit offset, and the 64-bit `extranonce2` there
+are 2^128 hashes reachable anyway.
+
+## testnet4, and the number that decides everything
+
+The fork activates on **testnet4** at height 150,308 — not testnet3, which sets
+no `Blake2bHeight` at all and never forks.
+
+Two templates for the same chain, eight minutes apart:
+
+| | `bits` | difficulty | expected time at 26 MH/s |
+|---|---|---|---|
+| within 20 min of the parent | `190295cb` | 1,661,387,930 | **8,600 years** |
+| more than 20 min after it | `1d00ffff` | 1 | **2.7 minutes** |
+
+testnet4 lets a block use difficulty 1 if its timestamp is more than two block
+intervals past its parent's. With almost no hashpower on the BLAKE2b side,
+essentially every block on this chain qualifies — so `getblocktemplate` on its
+own is useless, because it reports the difficulty for the timestamp *it* would
+pick, which is roughly now. Choosing the timestamp deliberately is the entire
+difference between the two rows above. See `crates/pool/src/min_difficulty.rs`.
+
+Consensus also allows a timestamp up to two hours ahead of the present, so a
+miner need not wait 20 real minutes — it can stamp forward and mine at once.
+That is standard on Bitcoin's testnet4 and it is what this pool does, but it
+pushes the chain's clock ahead of the world's, about six blocks before the
+allowance runs out. The pool prints how far ahead it is stamping on every new
+tip, so it stays a visible choice rather than an incidental one.
+
+### The result
+
+```
+*** BLOCK FOUND at height 150616 ***
+    0000000063400d7051d4049e1cd43f0d068c52768d76d41f88bc043bc5cca40e
+```
+
+Mined 2026-09-07 at 26 MH/s across six cores, and — the part that matters —
+adopted as the new tip by the independent Knots node at `82.67.102.15`, which
+had reported 150,615 a minute earlier.
+
+Its header is now a test vector like any other, read back off the chain. The
+extranonce reads `…0001` then `…0002`: the pool's assigned half followed by the
+miner thread's own, spliced into one 16-byte header field.
+
+## Mainnet, and the honest odds
+
+Synced 2026-09-07 via the `assumeutxo` snapshot at height 910,000 — which is a
+plain *Bitcoin* snapshot, since the chains are identical until 961,632, and
+`loadtxoutset` verifies it against a hash compiled into the binary. Nine GB and
+about ten hours, instead of 810 GB and several days.
+
+The fork boundary, read off the synced chain:
+
+| Height | Header | Difficulty | Mined |
+|---|---|---|---|
+| 961,639 | v1, SHA-256d | 127,479,855,693,691 | 2026-08-28 17:14 |
+| 961,640 | v2, BLAKE2b | **30,393,776** | 2026-08-30 06:14 |
+| 969,578 | v2, BLAKE2b | **285,485,753** | 2026-09-07 23:26 |
+
+The middle row is `Blake2bTargetShift = 22` in one step: 127 trillion to 30
+million, a 4.2-million-fold easing. The bottom row is what eight days of real
+hashpower did to it — a 9.4× climb, and still rising.
+
+### What that means for a laptop
+
+| | Expected time to a block |
+|---|---|
+| 1 thread, 5.31 MH/s | 7,317 years |
+| 6 threads, 23.6 MH/s | 1,646 years |
+| 8 threads, 26.14 MH/s | **1,486 years** |
+| *Bitcoin, 8 threads at 96.6 MH/s* | *179,564,838 years* |
+
+So this chain is about **121,000× better odds** than Bitcoin for the same
+machine — and still a 1,486-year expectation. Both things are true. An earlier
+draft of this README guessed 18 years from an assumed difficulty of 3.5 million;
+the measured figure is eighty times harder, and guessing was the mistake.
+
+Those figures are from 2026-09-07, and difficulty has kept climbing as
+hashpower arrived. On 2026-10-08 a block took about 2.2 × 10¹⁹ hashes on
+average — roughly **26,500 years** at 26 MH/s. The dashboard always shows the
+current figure.
+
+Mining is memoryless, so none of that is a countdown. It is a mean.
+
+## Testing across the fork
+
+The ordinary regtest chain sits above its activation height, so mining on it
+only ever exercises the post-fork path:
+
+```bash
+./scripts/fork-crossing-test.sh
+```
+
+builds a throwaway chain with the fork at height 5, mines through it, and
+checks the node's stored hash against the one the miner computed, block by
+block. That comparison is the point. On regtest roughly half of all hashes meet
+the target, so a miner using the *wrong algorithm entirely* still gets blocks
+accepted — which is exactly how this project shipped a v1 path that hashed
+pre-fork headers with BLAKE2b and reported hashes the node did not agree with.
+Acceptance is not evidence; agreement is.

@@ -1,367 +1,146 @@
 # bip110-miner
 
-A solo miner for the **BIP-110 / BLAKE2b Bitcoin hard fork** (ticker BTCB2),
-written from scratch in Rust, running against a local node.
+Mine the **BIP-110 fork of Bitcoin** (the BLAKE2b chain, ticker BTCB2) on your
+Mac with one command. No Bitcoin experience needed: it sets up everything it
+depends on, asks only about what's missing, and then shows a single live screen.
 
-It is the sibling of [btc-miner](https://github.com/saeedet/btc-miner),
-which does the same for Bitcoin. That project's expected time to a block is
-~180 million years. This one's is not, and that is the whole reason it exists.
+Everything Bitcoin-specific — the hash functions, the 164-byte header, the
+block assembly, the pool protocol, the mining loop — is written from scratch in
+Rust, so the whole path from a block template to a valid block can be read and
+checked. Its sibling, [btc-miner](https://github.com/saeedet/btc-miner), does
+the same for Bitcoin itself.
 
-## What this chain is
-
-A minority hard fork that split from Bitcoin at **block 961,632** on 8 August
-2026 and replaced SHA-256d with BLAKE2b. Every value below was read out of the
-node's own source at tag `v29.4.1.knots20260508`, not from a blog post:
-
-| | |
-|---|---|
-| Node software | [`bitcoinknots/bitcoin`](https://github.com/bitcoinknots/bitcoin) — a Bitcoin Core fork, so `getblocktemplate` / `submitblock` survive |
-| Proof of work | A **five-stage pipeline** using *both* SHA-256 and BLAKE2b — see [docs/proof-of-work.md](docs/proof-of-work.md). Not a drop-in hash swap |
-| Header | **164-byte "v2"**, flagged by `0x80000000` in the version field |
-| Activation | `Blake2bHeight = 961640` (mainnet), `150308` (**testnet4**), configurable on regtest |
-| Difficulty easing | `Blake2bTargetShift = 22` — a ~4.2-million-fold easing at the fork |
-| Fork message | `"8-30 NYPost Deride And Conquer"` — this chain's genesis-style headline |
-| Minimum node | **Knots 29.4.2** — earlier versions don't know the coinbase-maturity soft fork that activated at block 973,440 |
-
-Checkpointed in the release, which settles that the chain really produced
-blocks:
+> **Honest version up front.** Finding a block is a lottery win, not a paycheck.
+> A recent Mac would expect one roughly every 25,000 years at October 2026's
+> difficulty. There is no partial credit and no slow drip of earnings. Run it
+> because it's interesting to watch your own computer take part, not to earn.
 
 ```
-961632  first BIP110 block
-961639  last SHA256d block
-961640  first BLAKE2b block   0000000000000050c1e5f69672f459293be14f46e5a494e7a8c8541396f18eeb
+╭─ bip110-miner ────────────────────────────── MAINNET · 14:23 UTC · up 2h14m ─╮
+│  NODE  ● in sync · block 976,034 · 12 peers · Knots 29.4.2 · 5.1 GB          │
+├─ MINING ─────────────────────────────────────────────────────────────────────┤
+│   26.1 MH/s  ████████████████████████████████████  last 10 min               │
+│   power  ● balanced (6 of 8 cores)         job: block 976,035 · 203 txs      │
+├─ YOUR CHANCES ───────────────────────────────────────────────────────────────┤
+│   This session    about 1 in 24 million of finding a block                   │
+│   On average      one block every ≈ 5,945 years at this speed                │
+│   Best hash yet   28 of the 62 zero bits needed                              │
+│                   (each missing bit doubles it: 2³⁴ ≈ 17 billion× short)     │
+├─ ALL TIME ───────────────────────────────────────────────────────────────────┤
+│   3.04T hashes · 12 sessions · best ever 34 zero bits                        │
+│   rewards to bc1qw508…f3t4 · spendable 45 days after a block is found        │
+├─ RECENT ─────────────────────────────────────────────────────────────────────┤
+│   14:22  someone else found block 976,034 → new job, nothing lost            │
+│   14:15  someone else found block 976,033 → new job, nothing lost            │
+│   14:12  new personal best: 28 zero bits                                     │
+╰─ q quit · p pause · +/- power · ? what am I looking at ──────────────────────╯
 ```
 
-## Why the header grew from 80 bytes to 164
+*The live dashboard. The numbers here are illustrative.*
 
-Not vanity. The upstream change lists the reasons: 128 bits of ASIC nonce plus
-128 bits of machine nonce, an opt-in fix for block withholding, room for merge
-mining, and a transaction-count commitment that properly fixes CVE-2017-12842.
+## What you need
 
-Its serialised v2 field order, from `SERIALIZE_METHODS` in `primitives/block.h`:
+- A Mac with Apple Silicon (M1 or later), on macOS.
+- About **32 GB** of free disk for the blockchain on mainnet.
+- An internet connection. The first sync downloads tens of gigabytes, though
+  the node keeps only the most recent 10 GB of blocks.
 
-```
-nVersion  hashPrevBlock  hashMerkleRoot  nTime  nBits  nNonce
-m_nonce2  m_nonce3  m_extranonce  m_time_offset  m_txcount
-m_flags  m_xor_key_mask_clear_bits  m_xor_key  m_height  m_mm_rhs
-```
+## Install
 
-**The consequence that matters most for a miner:** the extranonce lives *in the
-header*. On Bitcoin, rolling the extranonce means rebuilding the coinbase, which
-changes its txid, which changes the merkle root. Here the merkle root never
-moves. That is simpler, and it changes what a pool has to send a miner.
-
-## One P2P network, two chains
-
-The fork changed neither the network magic nor the default ports. Mainnet is
-still `f9beb4d9` on 8333, testnet4 still `1c163f28` on 48333, and both use
-Bitcoin's own DNS seeds. Nodes on either side of the fork therefore meet
-constantly, and a datadir mix-up does not fail loudly — it produces a node that
-starts, connects, and quietly disagrees about which chain is real. Hence the
-dedicated `~/.bip110`.
-
-What keeps the two apart is a **service bit**, `NODE_BLAKE2B = 1 << 28`. Knots
-prefers peers advertising it for the first outbound-full-relay slots, demotes
-those without it to an extra connection rather than a counted one, and drives
-its DNS-seed cadence off how many it knows about. The hardfork-aware seeds
-answer the `x10000009` prefix — `NETWORK | WITNESS | BLAKE2B`.
-
-That prefix makes the fork's health measurable with a DNS query and no node at
-all. Measured 2026-09-07:
-
-| Seed | any (`x9`) | BLAKE2b (`x10000009`) |
-|---|---|---|
-| `seed.bitcoin.haf.ovh` | 25 | **25** |
-| `dnsseed.bitcoin.dashjr-list-of-p2p-nodes.us` | 22 | **22** |
-| `seed.bitcoin.sipa.be` | 25 | 0 — filter unsupported |
-| `seed.testnet4.bitcoin.sprovoost.nl` | 22 | **0** |
-| `seed.testnet4.wiz.biz` | 0 | 0 — filter unsupported |
-| `seed.testnet-bitcoin.haf.ovh` | 1 | **1** |
-
-Read the zeroes carefully: a seed that does not support the prefix returns
-nothing either way, so only a seed with a non-zero `x9` count says anything. By
-that standard mainnet is healthy and **testnet4 has exactly one reachable
-BLAKE2b peer** — Sjors Provoost's seed supports filtering, knows 22 testnet4
-nodes, and finds none of them on this side of the fork.
-
-Version handshakes against those peers, same day:
-
-```
-mainnet   38.102.85.36:8333    /Satoshi:29.4.1/Knots:20260508/     height 968974
-testnet4  82.67.102.15:48333   /Satoshi:29.4.1/Knots:20260508rc4/  height 150601
-```
-
-Both chains are alive. Bitcoin's own mainnet was at 965,905 the same day, so
-the BLAKE2b chain is **ahead** — 7,334 blocks in the eight days since
-activation, roughly six times the ten-minute target, because the 2²² target
-shift left difficulty far below the hashpower that turned up.
-
-## Honest assessment
-
-**As engineering, this is more interesting than mining Bitcoin.** BLAKE2b has no
-hardware acceleration on any consumer machine, but it is fast in software by
-design — so a CPU is not competing against a decade of dedicated silicon. This
-is no longer a claim: on 2026-09-07 this project mined testnet4 block 150,616
-on six cores, and the network took it.
-
-Measured throughput, `cargo run --release --example hashrate -p mining`:
-
-| Threads | Rate |
-|---|---|
-| 1 | 5.31 MH/s |
-| 2 | 10.20 MH/s |
-| 4 | 19.77 MH/s |
-| 8 | 26.14 MH/s |
-
-The five stages are now checked against real mainnet blocks —
-`crates/bip110-primitives/tests/mainnet_blocks.rs` reproduces the hashes of five
-of them, including 961,640, the fork block itself, and confirms each meets the
-target it claims.
-
-**As an investment it is close to worthless.** The fork drew about 2.53% miner
-support. One small beta exchange listed it with bids near $82 against asks near
-$190 — a spread over 130%, which is another way of saying it cannot be sold. No
-major exchange, wallet, or Lightning implementation has committed to it. The
-chain managed four blocks in its first week before being restarted.
-
-Those are separate questions. Watching your own code win a real block is a good
-reason to do this. Expecting to sell the proceeds is not.
-
-## Planned architecture
-
-Deliberately close to the Bitcoin project's, because most of it transfers:
-
-```
-knots node (BLAKE2b)  ──JSON-RPC──▶  pool  ──Stratum V1──▶  miner
-```
-
-| Crate | Responsibility |
-|---|---|
-| `blake2b` | BLAKE2b. Readable reference impl + optimised one, tested against each other |
-| `sha256` | SHA-256 and BIP340 tagged hashes — the PoW needs three of them. Portable from the sibling project, where it is already tested against real block headers |
-| `bip110-primitives` | Both header formats and **both** proof-of-work algorithms — SHA-256d below the fork height, the five-stage BLAKE2b pipeline above it. Merkle trees, transactions, targets. Pure, no I/O |
-| `node-rpc` | Typed JSON-RPC for `getblocktemplate` / `submitblock`. Cookie auth; hand-rolled HTTP and base64 |
-| `mining` | Coinbase construction, block assembly, nonce search. Pure, no I/O |
-| `regtest-miner` | End-to-end miner for a local regtest chain, both sides of the fork |
-| `stratum` | Stratum V1 wire types, shared by pool and miner so they cannot disagree |
-| `pool` | The solo pool: a node on one side, Stratum on the other |
-| `miner` | The hashing client. Knows nothing about blocks or the node |
-
-## What mining this chain actually requires
-
-Four rules a Bitcoin miner does not have, all of them found by reading
-`validation.cpp` rather than by guessing:
-
-| Rule | What happens if you miss it |
-|---|---|
-| The client must declare the `blake2b` rule to `getblocktemplate` | RPC error −8; no template at all |
-| The v2 header's `txcount` must equal the real transaction count | `bad-txnlist-size` |
-| At *exactly* the activation height, the coinbase `scriptSig` must contain the chain's headline | `bad-headline` |
-| From the activation height until RDTS expires, block weight is capped at 800,000 rather than 4,000,000 | `bad-blk-weight-reduced_data` |
-| From block 973,440 (Knots 29.4.2), a coinbase needs 6,480 confirmations — about 45 days — before it can be spent, not 100 | `bad-txns-premature-spend-of-coinbase` |
-
-The last two come free if you build from the node's template, since the node
-applies both when assembling it — provided the node is new enough to know them.
-
-Two things about the nonce space are worth knowing before writing a search
-loop. Above the fork there are **128 grindable bits**, not 32 — `nonce`,
-`nonce2`, `nonce3`, and `time_offset`, none of which touch the merkle root, so
-the coinbase never has to be rebuilt. `time_offset` qualifies because the flag
-that would make it consensus-relevant is ours to leave clear, and nothing in
-validation constrains it otherwise; `scripts/fork-crossing-test.sh` mines with
-it non-zero on every run so that claim keeps being tested rather than trusted.
-
-Below the fork there is **one** word again, and rolling the other three is not
-merely useless — they are not serialised, so a search that rolls them
-recomputes a single hash until its budget runs out. No error, no block.
-
-## What Stratum V1 looks like on this chain
-
-Stratum predates the fork by fifteen years and still fits, which turns out to
-be the clearest way to see what changed. `mining.notify` keeps all nine of its
-positional parameters. Two of them go **empty**.
-
-| Slot | Bitcoin | Here |
-|---|---|---|
-| `prevhash` | the previous block hash | `prevblock_hidden`, first 6 bytes blanked |
-| `coinb1` | coinbase bytes before the extranonce | a zero word, then `h2` — every consensus field, digested |
-| `coinb2` | coinbase bytes after the extranonce | **empty** |
-| `merkle_branch` | the path from the coinbase leaf to the root | **empty** |
-| `version` | the header version | the four stage-4 layout flags |
-| `nbits` | the block's target | unchanged |
-| `ntime` | the header timestamp | `time_offset` — a full 32 free bits |
-| `clean_jobs` | discard older jobs | unchanged |
-
-`coinb2` and `merkle_branch` exist so a miner can splice an extranonce into the
-middle of the coinbase and then repair the merkle root. This fork put the
-extranonce in the header, so there is nothing to splice and nothing to repair.
-The pool's job builder loses the sentinel search, the split, the branch, and
-the runtime cross-check that guards all three in the sibling Bitcoin project.
-
-The mapping is not invented here. The node's own source says where these bytes
-belong, in `primitives/block.cpp`:
-
-```
-// These fields get sent to mining machines over Sv1
-ss << (uint32_t)0;   // Final 3 bytes are part of Sv1 "coinb1"
-ss << h2_hash;       // Remainder of Sv1 "coinb1"
-ss << m_extranonce;  // Sv1 "extranonce"
-```
-
-### What a miner is not told
-
-Not the block version, the timestamp, the merkle root, or the real previous
-block hash — all folded into `h2` before the job exists. The source is explicit
-that this is the goal: *"the hasher cannot brick itself at some future block
-version, time, or difficulty."*
-
-Nor the XOR mask, and that one cuts the other way. A pool publishes the *hash*
-of its XOR key and keeps the key, so a miner can see that a share is good but
-not that it is a block — which makes block withholding impossible rather than
-merely detectable. A solo miner is its own pool and uses a null key, so no mask
-exists.
-
-The two words with no Stratum slot, `nonce2` and `nonce3`, simply stay zero.
-Between the 32-bit nonce, the 32-bit offset, and the 64-bit `extranonce2` there
-are 2^128 hashes reachable anyway.
-
-### Running it
-
-One command:
+There's no packaged release yet, so for now it is built from source. That needs
+[Rust](https://rustup.rs):
 
 ```bash
-./scripts/mine.sh mainnet --threads half
+git clone https://github.com/saeedet/bip110-miner.git
+cd bip110-miner
+cargo install --locked --path crates/cli
 ```
 
-That is the whole thing. It starts the node if it is not already running,
-reads the payout address from `~/.bip110-miner/payout.mainnet` (outside the
-repo, so it reaches neither git nor shell history), sets `BIP110_RPCPORT` from
-the network's config, waits for the pool to build a real job rather than merely
-to open a port, and stops the pool and the miner on Ctrl-C.
+That puts `bip110-miner` in `~/.cargo/bin`.
 
-The node is deliberately **left running** afterwards. It is not part of a
-mining session: stopping it would drop its peers and let the chain go stale, so
-the next run would pay to catch up.
-
-That `BIP110_RPCPORT` step is the main reason the script exists. This chain
-kept Bitcoin's RPC port, so a machine running both nodes has to move one, and
-forgetting to tell the client is this project's sharpest footgun.
-
-Or run the two processes by hand, which is what the script does:
+## First run
 
 ```bash
-cargo run --release -p pool -- --network regtest
+bip110-miner
 ```
 
-```bash
-cargo run --release -p miner -- --pool 127.0.0.1:3334 --worker mac.0
-```
+It checks four things, and asks about any that aren't ready:
 
-Port 3334, not Stratum's customary 3333. This chain already shares Bitcoin's
-P2P magic and RPC ports — a hazard, not a convenience — and there was no reason
-to add a third collision when both miners might run side by side.
+1. **This computer** — the chip, and whether the disk has room.
+2. **Node software** — the node is the program that talks to the network and
+   checks every block itself. It's called Bitcoin Knots. If it's missing or out
+   of date, it offers to download Knots 29.4.2 and installs it only if the file
+   is byte for byte the official, signed release.
+3. **Reward address** — where a reward goes if you find a block. It offers to
+   create a wallet on your node, protected by a passphrase you choose. That's
+   the recommended choice: an ordinary Bitcoin wallet app will accept a
+   BIP-110 address, but it can't spend coins on this chain.
+4. **Blockchain** — your node needs its own copy. A quick start loads a
+   snapshot (about 10 GB, checked by the node itself) and gets you mining in
+   hours instead of days. Mining starts on its own as soon as it's caught up.
 
-## testnet4, and the number that decides everything
+Next time, with everything in place, it goes straight to the dashboard.
 
-The fork activates on **testnet4** at height 150,308 — not testnet3, which sets
-no `Blake2bHeight` at all and never forks.
+## Everyday use
 
-Two templates for the same chain, eight minutes apart:
-
-| | `bits` | difficulty | expected time at 26 MH/s |
-|---|---|---|---|
-| within 20 min of the parent | `190295cb` | 1,661,387,930 | **8,600 years** |
-| more than 20 min after it | `1d00ffff` | 1 | **2.7 minutes** |
-
-testnet4 lets a block use difficulty 1 if its timestamp is more than two block
-intervals past its parent's. With almost no hashpower on the BLAKE2b side,
-essentially every block on this chain qualifies — so `getblocktemplate` on its
-own is useless, because it reports the difficulty for the timestamp *it* would
-pick, which is roughly now. Choosing the timestamp deliberately is the entire
-difference between the two rows above. See `crates/pool/src/min_difficulty.rs`.
-
-Consensus also allows a timestamp up to two hours ahead of the present, so a
-miner need not wait 20 real minutes — it can stamp forward and mine at once.
-That is standard on Bitcoin's testnet4 and it is what this pool does, but it
-pushes the chain's clock ahead of the world's, about six blocks before the
-allowance runs out. The pool prints how far ahead it is stamping on every new
-tip, so it stays a visible choice rather than an incidental one.
-
-### The result
-
-```
-*** BLOCK FOUND at height 150616 ***
-    0000000063400d7051d4049e1cd43f0d068c52768d76d41f88bc043bc5cca40e
-```
-
-Mined 2026-09-07 at 26 MH/s across six cores, and — the part that matters —
-adopted as the new tip by the independent Knots node at `82.67.102.15`, which
-had reported 150,615 a minute earlier.
-
-Its header is now a test vector like any other, read back off the chain. The
-extranonce reads `…0001` then `…0002`: the pool's assigned half followed by the
-miner thread's own, spliced into one 16-byte header field.
-
-## Mainnet, and the honest odds
-
-Synced 2026-09-07 via the `assumeutxo` snapshot at height 910,000 — which is a
-plain *Bitcoin* snapshot, since the chains are identical until 961,632, and
-`loadtxoutset` verifies it against a hash compiled into the binary. Nine GB and
-about ten hours, instead of 810 GB and several days.
-
-The fork boundary, read off the synced chain:
-
-| Height | Header | Difficulty | Mined |
-|---|---|---|---|
-| 961,639 | v1, SHA-256d | 127,479,855,693,691 | 2026-08-28 17:14 |
-| 961,640 | v2, BLAKE2b | **30,393,776** | 2026-08-30 06:14 |
-| 969,578 | v2, BLAKE2b | **285,485,753** | 2026-09-07 23:26 |
-
-The middle row is `Blake2bTargetShift = 22` in one step: 127 trillion to 30
-million, a 4.2-million-fold easing. The bottom row is what eight days of real
-hashpower did to it — a 9.4× climb, and still rising.
-
-### What that means for a laptop
-
-| | Expected time to a block |
+| Command | What it does |
 |---|---|
-| 1 thread, 5.31 MH/s | 7,317 years |
-| 6 threads, 23.6 MH/s | 1,646 years |
-| 8 threads, 26.14 MH/s | **1,486 years** |
-| *Bitcoin, 8 threads at 96.6 MH/s* | *179,564,838 years* |
+| `bip110-miner` | Set up anything missing, then mine |
+| `bip110-miner setup` | Go through setup again — this is how you change where rewards go |
+| `bip110-miner status` | Where the node and the chain are |
+| `bip110-miner wallet` | Your reward address, and whether this node can spend it |
+| `bip110-miner doctor` | Check everything mining depends on, with fixes for anything wrong |
+| `bip110-miner stop` | Shut the node down |
 
-So this chain is about **121,000× better odds** than Bitcoin for the same
-machine — and still a 1,486-year expectation. Both things are true. An earlier
-draft of this README guessed 18 years from an assumed difficulty of 3.5 million;
-the measured figure is eighty times harder, and guessing was the mistake.
+While mining:
 
-Mining is memoryless, so none of that is a countdown. It is a mean.
+| Key | Does |
+|---|---|
+| `q` | Quit. The node keeps running, so the next start is instant |
+| `p` | Pause or resume |
+| `+` `-` | Power: eco, balanced or max. Remembered for next time |
+| `?` | Explain what's on screen |
 
-## Testing across the fork
+Useful options: `--power eco|balanced|max`, `--threads N`, `--allow-sleep` (by
+default the Mac is kept awake while mining), and `--plain` for a log instead of
+the dashboard. When the output isn't a terminal — a log file, a service — it
+prints the log automatically. `--network testnet4` or `--network regtest` mines a
+test network instead.
 
-The ordinary regtest chain sits above its activation height, so mining on it
-only ever exercises the post-fork path:
+Stopping costs nothing. Every hash is a fresh lottery ticket, so an hour today
+and an hour next month are worth exactly what two hours now would be.
+
+## Where things live
+
+| Path | What |
+|---|---|
+| `~/.bip110-miner/config.toml` | Your choices: network, power, reward address |
+| `~/.bip110-miner/lifetime.json` | Hashes and best results across every session |
+| `~/.bip110-miner/knots/` | The Knots version it installed |
+| `~/.bip110` | The node's data: the blockchain, and any wallet on it |
+| `~/bip110-rewards.backup` | A backup of the wallet setup created. Keep a copy elsewhere |
+
+`~/.bip110` is deliberately not Knots' default folder. This chain shares
+Bitcoin's network, and a node pointed at a Bitcoin data folder would start,
+connect, and quietly disagree about which chain is real.
+
+## Uninstall
 
 ```bash
-./scripts/fork-crossing-test.sh
+bip110-miner stop
+cargo uninstall bip110-miner
 ```
 
-builds a throwaway chain with the fork at height 5, mines through it, and
-checks the node's stored hash against the one the miner computed, block by
-block. That comparison is the point. On regtest roughly half of all hashes meet
-the target, so a miner using the *wrong algorithm entirely* still gets blocks
-accepted — which is exactly how this project shipped a v1 path that hashed
-pre-fork headers with BLAKE2b and reported hashes the node did not agree with.
-Acceptance is not evidence; agreement is.
+Then delete `~/.bip110-miner`, and `~/.bip110` for the blockchain. **If your
+wallet holds anything, back it up and move it first** — it lives in `~/.bip110`.
 
-## Phases
+## Learn more
 
-- [x] **0** — Toolchains, repo skeleton, BLAKE2b regtest node running
-- [x] **1** — `blake2b` + `sha256`: RFC 7693 vectors, BIP340 tagged hashes, and the full PoW pipeline reproducing real block hashes
-- [x] **2** — `bip110-primitives`: the 164-byte header, and the PoW reproducing real block hashes
-- [x] **3** — Mine a regtest block the node accepts — *and one on each side of the fork*
-- [x] **4** — Split into pool + miner over Stratum V1
-- [x] **5** — testnet4 — *mined block 150,616, accepted by an independent node*
-- [x] **6** — Mainnet synced via assumeutxo — *difficulty measured, and it is 285 million*
+- [docs/chain.md](docs/chain.md) — what this chain is, the rules a miner must
+  follow, how Stratum maps onto it, and the measured odds
+- [docs/proof-of-work.md](docs/proof-of-work.md) — the five-stage proof of work
+- [docs/architecture.md](docs/architecture.md) — how the code fits together
+- [docs/cli-design.md](docs/cli-design.md) — the screens, as designed
 
-Phases 0–4 need no chain download at all; regtest generates its own.
+[Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) ·
+[Changelog](CHANGELOG.md) · [MIT License](LICENSE)
