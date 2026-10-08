@@ -5,8 +5,8 @@
 //! to mature, which peers count as being on the right network — live here,
 //! so the two projects differ in this file and not all over.
 
-use node_rpc::Network;
-use serde_json::Value;
+use node_rpc::{Network, RpcClient};
+use serde_json::{Value, json};
 
 use crate::setup::address::Way;
 
@@ -72,6 +72,32 @@ pub const fn snapshot(network: Network) -> Option<Snapshot> {
         }),
         Network::Testnet4 | Network::Regtest => None,
     }
+}
+
+/// Readies a regtest chain to be mined through the pool.
+///
+/// The pool builds only BLAKE2b work, and the blocks before the fork use the
+/// old 80-byte header. So a brand-new chain gets those first blocks from the
+/// node's own generator, paid to an anyone-can-spend script since regtest coins
+/// are worthless. Returns what was done, if anything.
+pub fn prepare_regtest(client: &RpcClient) -> Result<Option<String>, String> {
+    let tip = client.get_blockchain_info().map_err(|error| error.to_string())?.blocks;
+    let fork = crate::node::regtest_fork_height();
+    // The pool can take over once the next block is the fork block.
+    let needed = fork.saturating_sub(1).saturating_sub(tip);
+    if needed == 0 {
+        return Ok(None);
+    }
+    let info: Value =
+        client.call("getdescriptorinfo", json!(["raw(51)"])).map_err(|error| error.to_string())?;
+    let descriptor = info.get("descriptor").and_then(Value::as_str).ok_or("the node gave no descriptor")?;
+    client
+        .call::<Value>("generatetodescriptor", json!([needed, descriptor]))
+        .map_err(|error| format!("cannot mine the blocks before the fork: {error}"))?;
+    Ok(Some(format!(
+        "a new regtest chain: the node mined its first {needed} blocks itself, since they come \
+         before the fork and the pool only builds BLAKE2b work"
+    )))
 }
 
 /// Where Knots 29.4.2's longer coinbase maturity starts on mainnet.

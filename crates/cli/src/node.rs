@@ -37,6 +37,16 @@ fn template(network: Network) -> &'static str {
     }
 }
 
+/// The height at which this project's regtest chain switches to BLAKE2b, as
+/// its configuration sets it (`testactivationheight=blake2b@10`).
+pub fn regtest_fork_height() -> u32 {
+    template(Network::Regtest)
+        .lines()
+        .find_map(|line| line.trim().strip_prefix("testactivationheight=blake2b@"))
+        .and_then(|height| height.trim().parse().ok())
+        .unwrap_or(0)
+}
+
 /// The RPC port the node's configuration sets, if it moves it.
 ///
 /// Mainnet's moves it to 8342, off Bitcoin's 8332, so this and a Bitcoin node
@@ -213,6 +223,11 @@ mod tests {
 
     /// Mainnet's node moves its RPC port off Bitcoin's, and the program must
     /// know where it went.
+    #[test]
+    fn knows_where_regtest_forks() {
+        assert_eq!(regtest_fork_height(), 10);
+    }
+
     #[test]
     fn knows_where_each_network_listens_for_rpc() {
         assert_eq!(configured_rpc_port(Network::Mainnet), Some(8342));

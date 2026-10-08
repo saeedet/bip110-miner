@@ -74,6 +74,11 @@ pub fn run(settings: &Settings, options: &Options) -> Result<(), String> {
     }
 
     ensure_node(settings)?;
+    if settings.network == Network::Regtest
+        && let Some(note) = crate::chain::prepare_regtest(&node::client(settings)?)?
+    {
+        notes.push(note);
+    }
 
     let (sender, events) = channel();
     let output: Arc<dyn Sink> = if live { Arc::new(Channel::new(sender)) } else { Arc::new(Plain) };
