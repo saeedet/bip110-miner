@@ -63,7 +63,10 @@ impl Controls {
 
     /// Whether the thread at `index` should be hashing right now.
     pub fn should_hash(&self, index: usize) -> bool {
-        !self.paused() && index < self.threads()
+        // Stopping is checked here, between batches, and not only when a new
+        // job arrives: on a real network a job can last for minutes, and a
+        // stop that waited for the next one would leave every core busy.
+        !self.stopping() && !self.paused() && index < self.threads()
     }
 }
 
@@ -80,6 +83,13 @@ mod tests {
 
         controls.set_threads(1);
         assert!(!controls.should_hash(1));
+    }
+
+    #[test]
+    fn stopping_idles_every_thread_at_once() {
+        let controls = Controls::new(8);
+        controls.stop();
+        assert!((0..8).all(|i| !controls.should_hash(i)));
     }
 
     #[test]
