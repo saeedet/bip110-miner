@@ -41,6 +41,8 @@ The first release, as one command anyone can run.
 
 - Quitting no longer waits for the next block before the hashing threads stop.
 - A node one block behind its own headers is no longer treated as syncing.
+- A new regtest chain, or one left alone for a day, can be mined again; the
+  pool used to wait forever for it to finish a sync it never needed.
 - A pool whose node falls behind pauses until it recovers, rather than exiting.
 
 ## Before the first release

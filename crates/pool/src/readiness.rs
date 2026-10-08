@@ -142,18 +142,21 @@ pub fn check(network: Network, info: &BlockchainInfo, peers: u32, now: i64) -> R
         return Err(NotReady::WrongNetwork { wanted: network.to_string(), found: info.chain.clone() });
     }
 
+    // Regtest is a private chain: no peers, nothing to download, and blocks
+    // are whenever someone last mined one. Its node says "initial block
+    // download" whenever the tip is a day old — including a brand-new chain —
+    // and the only way out is to mine a block. So none of the checks below
+    // mean anything there, and waiting on them would wait forever.
+    if network == Network::Regtest {
+        return Ok(());
+    }
+
     if info.initial_block_download {
         return Err(NotReady::InitialBlockDownload { blocks: info.blocks });
     }
 
     if info.headers.saturating_sub(info.blocks) > AT_TIP_TOLERANCE {
         return Err(NotReady::BehindHeaders { blocks: info.blocks, headers: info.headers });
-    }
-
-    // Regtest is a private chain with no peers by design, and its blocks are
-    // whenever you last mined one. Neither check means anything there.
-    if network == Network::Regtest {
-        return Ok(());
     }
 
     if peers == 0 {
@@ -262,6 +265,14 @@ mod tests {
             !reason.to_string().contains("1578 of 1578"),
             "must not render an absent gap as though it were one: {reason}"
         );
+    }
+
+    /// A brand-new regtest chain reports initial block download until its
+    /// first block — which only mining can produce.
+    #[test]
+    fn a_fresh_regtest_chain_can_be_mined() {
+        let node = info("regtest", 0, 0, true, 1_296_688_602);
+        assert!(check(Network::Regtest, &node, 0, NOW).is_ok());
     }
 
     /// The regression this tolerance exists for.

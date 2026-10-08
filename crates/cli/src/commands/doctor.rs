@@ -83,6 +83,10 @@ pub fn run(settings: &Settings) -> Result<(), String> {
                 found: format!("the node is on {}, not {}", info.chain, network_key(settings.network)),
                 fix: "check the node's data directory".into(),
             },
+            // A private chain has nothing to catch up with, whatever the node says.
+            Some(info) if settings.network == Network::Regtest => {
+                Outcome::Ok(format!("regtest, block {}", grouped(u64::from(info.blocks))))
+            }
             Some(info) if info.initial_block_download || info.headers > info.blocks + 2 => Outcome::Problem {
                 found: format!(
                     "catching up: block {} of {}",

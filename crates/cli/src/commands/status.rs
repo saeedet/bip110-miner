@@ -32,7 +32,9 @@ pub fn run(settings: &Settings) -> Result<(), String> {
     let version = node::running_version(&client).map_or("?".to_owned(), node::version_string);
     println!("node      running · Knots {version} · {} peers ({fork_peers} on BIP-110)", peers.len());
 
-    let state = if info.initial_block_download || info.headers > info.blocks + 2 {
+    let state = if settings.network == Network::Regtest {
+        "a private chain, mined here".to_owned()
+    } else if info.initial_block_download || info.headers > info.blocks + 2 {
         format!("catching up, {} blocks to go", grouped(u64::from(info.headers.saturating_sub(info.blocks))))
     } else {
         "in sync".to_owned()
