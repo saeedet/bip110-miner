@@ -254,13 +254,13 @@ fn progress_body(
         ),
         Part::Gap,
         Part::Line(Line::raw(format!(
-            "    {:<17}{}  {:>3}%   {left}",
+            "    {:<17}{}  {:>3}%",
             "Catching up",
             bar(progress, 28),
             (progress * 100.0).floor() as u64
         ))),
         Part::Line(Line::raw(format!(
-            "    {:<17}block {} of {}",
+            "    {:<17}block {} of {} · {left}",
             "",
             grouped(blocks),
             if headers > 0 { grouped(headers) } else { "…".to_owned() }

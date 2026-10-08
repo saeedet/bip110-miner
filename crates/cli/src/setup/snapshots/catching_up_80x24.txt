@@ -9,8 +9,8 @@
 │  Before mining, your computer needs its own copy of the blockchain, so it    │
 │  can check every block itself instead of trusting anyone else.               │
 │                                                                              │
-│    Catching up      ██████████████████░░░░░░░░░░   64%   about 2 hours left  │
-│                     block 950,112 of 976,034                                 │
+│    Catching up      ██████████████████░░░░░░░░░░   64%                       │
+│                     block 950,112 of 976,034 · about 2 hours left            │
 │                                                                              │
 │  ⏵ Mining starts on its own when this reaches 100%.                          │
 │                                                                              │
