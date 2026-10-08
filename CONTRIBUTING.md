@@ -62,3 +62,15 @@ file. What differs between the chains lives in `chain.rs` and
 
 One logical change per commit, with a subject in the imperative ("Fix…",
 "Add…") and a body that says why. Formatting changes go in their own commit.
+
+## Releasing
+
+1. Set the new version in `crates/cli/Cargo.toml`, and turn the changelog's
+   `Unreleased` section into that version with today's date.
+2. Commit, then tag and push: `git tag -a v0.2.0 -m "bip110-miner 0.2.0"` and
+   `git push origin v0.2.0`. The release workflow checks the tag matches the
+   version, builds on a clean runner, and publishes the release with the
+   archive's SHA-256.
+3. In [saeedet/homebrew-tap](https://github.com/saeedet/homebrew-tap), point
+   `Formula/bip110-miner.rb` at the new archive and its SHA-256. That repository's
+   tests install it on a fresh Mac and run it the way a newcomer would.

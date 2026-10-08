@@ -22,14 +22,24 @@ the same for Bitcoin itself.
 ## What you need
 
 - A Mac with Apple Silicon (M1 or later), on macOS.
+- [Homebrew](https://brew.sh), or Rust to build from source.
 - About **32 GB** of free disk for the blockchain on mainnet.
 - An internet connection. The first sync downloads tens of gigabytes, though
   the node keeps only the most recent 10 GB of blocks.
 
 ## Install
 
-There's no packaged release yet, so for now it is built from source. That needs
-[Rust](https://rustup.rs):
+With [Homebrew](https://brew.sh):
+
+```bash
+brew install saeedet/tap/bip110-miner
+```
+
+The node it needs, Bitcoin Knots, is downloaded and checked on the first run.
+
+### From source
+
+Building it yourself needs [Rust](https://rustup.rs):
 
 ```bash
 git clone https://github.com/saeedet/bip110-miner.git
@@ -109,8 +119,10 @@ connect, and quietly disagree about which chain is real.
 
 ```bash
 bip110-miner stop
-cargo uninstall bip110-miner
+brew uninstall bip110-miner
 ```
+
+(or `cargo uninstall bip110-miner` if you built it from source)
 
 Then delete `~/.bip110-miner`, and `~/.bip110` for the blockchain. **If your
 wallet holds anything, back it up and move it first** — it lives in `~/.bip110`.
