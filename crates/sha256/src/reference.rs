@@ -124,8 +124,9 @@ pub fn sha256(message: &[u8]) -> [u8; 32] {
     let padded = pad(message);
     let mut state = H0;
 
-    for block in padded.chunks_exact(64) {
-        compress_block(&mut state, block.try_into().expect("chunks_exact(64)"));
+    // Padding always makes a whole number of 64-byte blocks.
+    for block in padded.as_chunks::<64>().0 {
+        compress_block(&mut state, block);
     }
 
     // The digest is the eight state words written out big-endian.

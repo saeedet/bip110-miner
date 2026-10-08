@@ -51,7 +51,7 @@ pub fn merkle_root(leaves: &[Hash256]) -> Option<Hash256> {
             level.push(*level.last().expect("level is non-empty"));
         }
 
-        level = level.chunks_exact(2).map(|pair| combine(pair[0], pair[1])).collect();
+        level = level.as_chunks::<2>().0.iter().map(|&[left, right]| combine(left, right)).collect();
     }
 
     Some(level[0])
@@ -90,7 +90,7 @@ pub fn coinbase_branch(leaves: &[Hash256]) -> Vec<Hash256> {
         // The coinbase is always at index 0, so its sibling is always index 1.
         branch.push(level[1]);
 
-        level = level.chunks_exact(2).map(|pair| combine(pair[0], pair[1])).collect();
+        level = level.as_chunks::<2>().0.iter().map(|&[left, right]| combine(left, right)).collect();
     }
 
     branch
