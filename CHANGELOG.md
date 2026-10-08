@@ -6,6 +6,8 @@ All notable changes to this project. The format follows
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-08
+
 The first release, as one command anyone can run.
 
 ### Added
@@ -55,3 +57,6 @@ Developed in stages, each with its result checked against real data:
 - The pool and miner, split over Stratum V1.
 - testnet4 block 150,616, mined here and accepted by an independent node.
 - A mainnet node synced from a UTXO snapshot.
+
+[Unreleased]: https://github.com/saeedet/bip110-miner/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/saeedet/bip110-miner/releases/tag/v0.1.0

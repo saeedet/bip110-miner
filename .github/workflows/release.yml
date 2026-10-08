@@ -1,0 +1,44 @@
+# Builds and publishes a release when a version tag is pushed: `git tag v0.1.0`.
+#
+# Built here rather than on a developer's machine, so every published binary
+# comes from the tagged source on a clean runner. The Homebrew formula in
+# saeedet/homebrew-tap points at the archive this produces.
+
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check the tag matches the version
+        run: |
+          version=$(cargo pkgid -p bip110-miner | sed 's/.*[#@]//')
+          [ "v$version" = "$GITHUB_REF_NAME" ] || { echo "tag $GITHUB_REF_NAME, but Cargo says $version"; exit 1; }
+          [ "$(uname -m)" = arm64 ] || { echo "expected an Apple Silicon runner"; exit 1; }
+      - name: Build
+        run: cargo build --release --locked -p bip110-miner
+      - name: Package
+        run: |
+          name="bip110-miner-${GITHUB_REF_NAME#v}-aarch64-apple-darwin"
+          mkdir "$name"
+          cp target/release/bip110-miner LICENSE README.md CHANGELOG.md "$name/"
+          tar -czf "$name.tar.gz" "$name"
+          shasum -a 256 "$name.tar.gz" | tee "$name.tar.gz.sha256"
+          echo "ARCHIVE=$name.tar.gz" >> "$GITHUB_ENV"
+      - name: Release notes from the changelog
+        run: |
+          awk -v v="${GITHUB_REF_NAME#v}" '$0 ~ "^## \\[" v "\\]" {on=1; next} on && /^## / {exit} on' CHANGELOG.md > notes.md
+          [ -s notes.md ] || { echo "CHANGELOG.md has no section for this version"; exit 1; }
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" "$ARCHIVE" "$ARCHIVE.sha256" --title "bip110-miner $GITHUB_REF_NAME" --notes-file notes.md
