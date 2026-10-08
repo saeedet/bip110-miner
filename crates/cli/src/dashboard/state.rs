@@ -248,7 +248,10 @@ impl State {
             Event::PoolReady => self.note(Level::Info, "mining started"),
             Event::NewJob { height, transactions, reward, .. } => self.new_job(height, transactions, reward),
             Event::MinimumDifficulty { .. } => {
-                self.note(Level::Info, "testnet4's minimum-difficulty window is open: mining at difficulty 1");
+                self.note(
+                    Level::Info,
+                    "testnet4's minimum-difficulty window is open: mining at difficulty 1",
+                );
             }
             Event::DifficultyChanged { difficulty, .. } => self.difficulty = difficulty,
             Event::Paused { reason } => {
@@ -279,7 +282,9 @@ impl State {
                 self.lifetime = Some(Lifetime { total_hashes, sessions, best_zero_bits });
             }
             Event::JobReceived { difficulty, .. } => self.difficulty = difficulty,
-            Event::ShareRejected { reason } => self.note(Level::Warn, format!("the pool rejected a share: {reason}")),
+            Event::ShareRejected { reason } => {
+                self.note(Level::Warn, format!("the pool rejected a share: {reason}"))
+            }
             Event::PoolClosed => self.note(Level::Warn, "the pool closed the connection"),
             Event::Report(report) => self.report(&report),
             Event::Listening { .. }
@@ -299,13 +304,19 @@ impl State {
     fn new_job(&mut self, height: u32, transactions: usize, reward: u64) {
         let parent = height.saturating_sub(1);
         if self.job.is_none() {
-            self.note(Level::Info, format!("first job ready: working on block {}", crate::commands::grouped(height.into())));
+            self.note(
+                Level::Info,
+                format!("first job ready: working on block {}", crate::commands::grouped(height.into())),
+            );
         } else if self.last_found_height == Some(parent) {
             self.note(Level::Info, "your block is on the chain → new job");
         } else {
             self.note(
                 Level::Info,
-                format!("someone else found block {} → new job, nothing lost", crate::commands::grouped(parent.into())),
+                format!(
+                    "someone else found block {} → new job, nothing lost",
+                    crate::commands::grouped(parent.into())
+                ),
             );
         }
         self.job = Some(Job { height, transactions, reward, since: self.now });

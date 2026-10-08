@@ -61,11 +61,7 @@ pub fn mine(
     // We derive this ourselves and then check it against the node's own answer.
     // Deriving it is the point; having ground truth to check against is what
     // makes deriving it safe.
-    let wtxids: Vec<Hash256> = template
-        .transactions
-        .iter()
-        .map(|tx| tx.wtxid())
-        .collect::<Result<_, _>>()?;
+    let wtxids: Vec<Hash256> = template.transactions.iter().map(|tx| tx.wtxid()).collect::<Result<_, _>>()?;
 
     let commitment_script = witness::commitment_script(&wtxids);
 
@@ -84,14 +80,10 @@ pub fn mine(
     // The headline goes in only at the activation height. `is_fork_block` costs
     // one RPC per round, which is nothing next to being wrong about it: too
     // early and the bytes are wasted, too late and the block is rejected.
-    let mut coinbase = CoinbaseBuilder::new(
-        template.height,
-        template.coinbase_value,
-        payout_script.to_vec(),
-    )
-    .extranonce(extranonce.to_le_bytes().to_vec())
-    .tag(b"bip110-miner".to_vec())
-    .witness_commitment(commitment_script);
+    let mut coinbase = CoinbaseBuilder::new(template.height, template.coinbase_value, payout_script.to_vec())
+        .extranonce(extranonce.to_le_bytes().to_vec())
+        .tag(b"bip110-miner".to_vec())
+        .witness_commitment(commitment_script);
 
     if let Some(headline) = headline
         && is_fork_block(client, template)?
@@ -102,16 +94,9 @@ pub fn mine(
     let coinbase = coinbase.build()?;
 
     // --- 3. The block -------------------------------------------------------
-    let raw_transactions: Vec<Vec<u8>> = template
-        .transactions
-        .iter()
-        .map(|tx| tx.raw())
-        .collect::<Result<_, _>>()?;
-    let txids: Vec<Hash256> = template
-        .transactions
-        .iter()
-        .map(|tx| tx.txid())
-        .collect::<Result<_, _>>()?;
+    let raw_transactions: Vec<Vec<u8>> =
+        template.transactions.iter().map(|tx| tx.raw()).collect::<Result<_, _>>()?;
+    let txids: Vec<Hash256> = template.transactions.iter().map(|tx| tx.txid()).collect::<Result<_, _>>()?;
 
     let builder = BlockBuilder::new(coinbase, raw_transactions, txids)?;
 
@@ -194,10 +179,7 @@ pub fn mine(
 /// There is no field for this. The template says whether *this* block needs a
 /// v2 header; the fork block is the one where that is true and it was not true
 /// for the parent, so the parent's header is what has to be looked at.
-fn is_fork_block(
-    client: &RpcClient,
-    template: &BlockTemplate,
-) -> Result<bool, Box<dyn std::error::Error>> {
+fn is_fork_block(client: &RpcClient, template: &BlockTemplate) -> Result<bool, Box<dyn std::error::Error>> {
     if !template.header_v2() {
         return Ok(false);
     }

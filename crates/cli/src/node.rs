@@ -66,8 +66,7 @@ fn write_conf(network: Network) -> Result<PathBuf, String> {
             std::fs::create_dir_all(parent)
                 .map_err(|error| format!("cannot create {}: {error}", parent.display()))?;
         }
-        std::fs::write(&path, wanted)
-            .map_err(|error| format!("cannot write {}: {error}", path.display()))?;
+        std::fs::write(&path, wanted).map_err(|error| format!("cannot write {}: {error}", path.display()))?;
     }
     Ok(path)
 }
@@ -168,10 +167,7 @@ pub fn start(settings: &Settings, mut waiting: impl FnMut(Duration)) -> Result<(
         waiting(started.elapsed());
         std::thread::sleep(Duration::from_secs(1));
     }
-    Err(format!(
-        "the node did not answer within ten minutes — its log is at {}",
-        settings.datadir.display()
-    ))
+    Err(format!("the node did not answer within ten minutes — its log is at {}", settings.datadir.display()))
 }
 
 /// Asks the node to shut down.

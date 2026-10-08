@@ -73,12 +73,7 @@ pub(crate) fn compress_block(state: &mut [u32; 8], block: &[u8; 64]) {
     // getting it wrong is the single most common way to produce a hasher that
     // looks plausible and computes garbage.
     for t in 0..16 {
-        w[t] = u32::from_be_bytes([
-            block[t * 4],
-            block[t * 4 + 1],
-            block[t * 4 + 2],
-            block[t * 4 + 3],
-        ]);
+        w[t] = u32::from_be_bytes([block[t * 4], block[t * 4 + 1], block[t * 4 + 2], block[t * 4 + 3]]);
     }
 
     // The remaining 48 are derived, each from four earlier words. This is what
@@ -95,11 +90,8 @@ pub(crate) fn compress_block(state: &mut [u32; 8], block: &[u8; 64]) {
 
     // --- Step 3: sixty-four rounds ------------------------------------------
     for t in 0..64 {
-        let t1 = h
-            .wrapping_add(big_sigma1(e))
-            .wrapping_add(ch(e, f, g))
-            .wrapping_add(K[t])
-            .wrapping_add(w[t]);
+        let t1 =
+            h.wrapping_add(big_sigma1(e)).wrapping_add(ch(e, f, g)).wrapping_add(K[t]).wrapping_add(w[t]);
         let t2 = big_sigma0(a).wrapping_add(maj(a, b, c));
 
         // Every variable shifts down one position, with `t1` and `t2` injected

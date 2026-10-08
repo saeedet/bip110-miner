@@ -92,11 +92,7 @@ impl BlockHeader {
     /// The version as serialised, with the v2 flag folded back in.
     pub fn complete_version(&self) -> u32 {
         let base = (self.version as u32) & !VERSION_HEADER_V2_FLAG;
-        if self.header_v2 {
-            base | VERSION_HEADER_V2_FLAG
-        } else {
-            base
-        }
+        if self.header_v2 { base | VERSION_HEADER_V2_FLAG } else { base }
     }
 
     /// The block's actual timestamp.
@@ -156,10 +152,7 @@ impl BlockHeader {
         // happily and then read nonsense.
         let expected = if header_v2 { HEADER_V2_SIZE } else { HEADER_V1_SIZE };
         if bytes.len() != expected {
-            return Err(HeaderError::WrongLength {
-                expected,
-                found: bytes.len(),
-            });
+            return Err(HeaderError::WrongLength { expected, found: bytes.len() });
         }
 
         let mut header = Self {
@@ -212,10 +205,7 @@ impl<'a> Cursor<'a> {
 
     fn array<const N: usize>(&mut self) -> Result<[u8; N], HeaderError> {
         let end = self.at + N;
-        let slice = self
-            .bytes
-            .get(self.at..end)
-            .ok_or(HeaderError::UnexpectedEnd)?;
+        let slice = self.bytes.get(self.at..end).ok_or(HeaderError::UnexpectedEnd)?;
         self.at = end;
         Ok(slice.try_into().expect("slice length checked by get()"))
     }
@@ -255,10 +245,9 @@ impl std::fmt::Display for HeaderError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::UnexpectedEnd => write!(f, "input ended before the header did"),
-            Self::WrongLength { expected, found } => write!(
-                f,
-                "the version flag declares a {expected}-byte header but {found} bytes were given"
-            ),
+            Self::WrongLength { expected, found } => {
+                write!(f, "the version flag declares a {expected}-byte header but {found} bytes were given")
+            }
         }
     }
 }

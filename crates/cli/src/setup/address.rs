@@ -17,8 +17,13 @@ pub enum Way {
 }
 
 /// Asks where rewards should go, saves the answer, and returns it.
-pub fn ask(wizard: &mut Wizard, settings: &mut Settings, client: &RpcClient) -> Result<Answer<String>, String> {
-    let intro: Vec<Part> = chain::ADDRESS_INTRO.iter().flat_map(|text| [Part::Text((*text).into()), Part::Gap]).collect();
+pub fn ask(
+    wizard: &mut Wizard,
+    settings: &mut Settings,
+    client: &RpcClient,
+) -> Result<Answer<String>, String> {
+    let intro: Vec<Part> =
+        chain::ADDRESS_INTRO.iter().flat_map(|text| [Part::Text((*text).into()), Part::Gap]).collect();
     let intro = &intro[..intro.len() - 1];
     let choices: Vec<String> = chain::ADDRESS_WAYS.iter().map(|(_, label)| (*label).to_owned()).collect();
 

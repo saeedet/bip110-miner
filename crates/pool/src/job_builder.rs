@@ -81,13 +81,9 @@ pub fn build(
         return Err(BuildError::WitnessCommitmentMismatch);
     }
 
-    let mut coinbase = CoinbaseBuilder::new(
-        template.height,
-        template.coinbase_value,
-        payout_script.to_vec(),
-    )
-    .tag(b"bip110-miner".to_vec())
-    .witness_commitment(witness_commitment);
+    let mut coinbase = CoinbaseBuilder::new(template.height, template.coinbase_value, payout_script.to_vec())
+        .tag(b"bip110-miner".to_vec())
+        .witness_commitment(witness_commitment);
 
     if let Some(headline) = headline {
         coinbase = coinbase.headline(headline.to_vec());

@@ -16,9 +16,8 @@ use node_rpc::Network;
 use pool::{Options, Reported};
 
 fn main() {
-    let result = parse_args().and_then(|options| {
-        pool::run(&options, Arc::new(Plain), Arc::new(AtomicBool::new(false)))
-    });
+    let result = parse_args()
+        .and_then(|options| pool::run(&options, Arc::new(Plain), Arc::new(AtomicBool::new(false))));
 
     if let Err(error) = result {
         // Already printed by the pool itself, in its own words.

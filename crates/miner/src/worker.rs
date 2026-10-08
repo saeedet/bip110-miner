@@ -190,11 +190,7 @@ fn next_batch(at: NonceSpace) -> NonceSpace {
     match at.nonce.checked_add(BATCH) {
         Some(nonce) => NonceSpace { nonce, ..at },
         // The nonce word is exhausted. Roll the offset and start it again.
-        None => NonceSpace {
-            nonce: 0,
-            time_offset: at.time_offset.wrapping_add(1),
-            ..at
-        },
+        None => NonceSpace { nonce: 0, time_offset: at.time_offset.wrapping_add(1), ..at },
     }
 }
 
@@ -235,10 +231,9 @@ fn submit(shared: &Shared, job_id: &str, extranonce2: &[u8], solution: mining::S
         Ok(line) => {
             let _ = shared.outbound.send(line);
         }
-        Err(error) => shared.sink.emit(Event::Log {
-            level: Level::Warn,
-            text: format!("cannot serialise share: {error}"),
-        }),
+        Err(error) => shared
+            .sink
+            .emit(Event::Log { level: Level::Warn, text: format!("cannot serialise share: {error}") }),
     }
 }
 
@@ -326,9 +321,8 @@ mod tests {
     #[test]
     fn claimed_extranonces_are_distinct() {
         let counter = AtomicU64::new(0);
-        let claimed: Vec<_> = (0..64)
-            .map(|_| encode_extranonce2(counter.fetch_add(1, Ordering::Relaxed), 8))
-            .collect();
+        let claimed: Vec<_> =
+            (0..64).map(|_| encode_extranonce2(counter.fetch_add(1, Ordering::Relaxed), 8)).collect();
 
         let unique: std::collections::HashSet<_> = claimed.iter().collect();
         assert_eq!(unique.len(), claimed.len());

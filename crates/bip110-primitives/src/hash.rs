@@ -141,8 +141,7 @@ impl FromStr for Hash256 {
 
         let mut bytes = [0u8; 32];
         for (i, byte) in bytes.iter_mut().enumerate() {
-            *byte =
-                u8::from_str_radix(&s[i * 2..i * 2 + 2], 16).map_err(|_| ParseHashError::NotHex)?;
+            *byte = u8::from_str_radix(&s[i * 2..i * 2 + 2], 16).map_err(|_| ParseHashError::NotHex)?;
         }
 
         Ok(Self::from_display_bytes(bytes))

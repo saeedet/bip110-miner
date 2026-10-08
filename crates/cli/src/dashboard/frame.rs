@@ -110,7 +110,10 @@ impl Frame {
         let spans = vec![
             Span::styled("╰─ ", border()),
             Span::raw(hints.to_owned()),
-            Span::styled(format!(" {}╯", "─".repeat(self.width.saturating_sub(5 + hints.chars().count()))), border()),
+            Span::styled(
+                format!(" {}╯", "─".repeat(self.width.saturating_sub(5 + hints.chars().count()))),
+                border(),
+            ),
         ];
         self.lines.push(fit(spans, self.width));
         self.lines
@@ -183,11 +186,7 @@ pub fn pad(spans: Vec<Span<'static>>, columns: usize) -> Line<'static> {
 
 /// Like [`pad`], for a whole border line that must not be cut mid-corner.
 fn fit(spans: Vec<Span<'static>>, columns: usize) -> Line<'static> {
-    if width(&spans) <= columns {
-        Line::from(spans)
-    } else {
-        pad(spans, columns)
-    }
+    if width(&spans) <= columns { Line::from(spans) } else { pad(spans, columns) }
 }
 
 /// A screen's plain text, one row per line, for tests.

@@ -232,7 +232,12 @@ fn spark(state: &State, cells: usize, window: u64) -> Span<'static> {
 
 /// Bars for the average rate in each slice of the window; blank where there
 /// is no data yet, so a young session doesn't pretend to a history it lacks.
-pub fn sparkline(samples: &std::collections::VecDeque<(u64, f64)>, now: u64, window: u64, cells: usize) -> String {
+pub fn sparkline(
+    samples: &std::collections::VecDeque<(u64, f64)>,
+    now: u64,
+    window: u64,
+    cells: usize,
+) -> String {
     const BARS: [char; 8] = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
     let start = now.saturating_sub(window);
     let slice = (window as f64 / cells as f64).max(1.0);

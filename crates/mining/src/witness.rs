@@ -109,10 +109,7 @@ mod tests {
     #[test]
     fn empty_block_root_is_the_placeholder() {
         assert_eq!(witness_merkle_root(&[]), Hash256::ZERO);
-        assert_eq!(
-            commitment(Hash256::ZERO, &RESERVED_VALUE),
-            Hash256::sha256d(&[0u8; 64])
-        );
+        assert_eq!(commitment(Hash256::ZERO, &RESERVED_VALUE), Hash256::sha256d(&[0u8; 64]));
     }
 
     #[test]

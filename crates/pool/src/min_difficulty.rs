@@ -120,10 +120,7 @@ pub fn plan(parent_time: u32, min_time: u32) -> Window {
     let qualifying = i64::from(parent_time) + MIN_DIFFICULTY_GAP + 1;
     let ntime = qualifying.max(i64::from(min_time));
 
-    Window {
-        ntime: ntime as u32,
-        legal_at: ntime - MAX_FUTURE_BLOCK_TIME,
-    }
+    Window { ntime: ntime as u32, legal_at: ntime - MAX_FUTURE_BLOCK_TIME }
 }
 
 #[cfg(test)]

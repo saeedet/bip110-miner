@@ -22,8 +22,8 @@ use ratatui::crossterm::event::{self, Event as Input, KeyCode, KeyEventKind, Key
 use ratatui::widgets::Paragraph;
 use serde_json::{Value, json};
 
-pub use state::{NodeStatus, State};
 use state::Overlay;
+pub use state::{NodeStatus, State};
 
 use crate::chain;
 use crate::config::{self, Power, Settings};
@@ -148,7 +148,8 @@ pub fn draw(state: &State, width: usize, height: usize) -> Vec<ratatui::text::Li
 fn press(state: &mut State, session: &Session<'_>, key: KeyCode) {
     match (state.overlay, key) {
         (Overlay::None, KeyCode::Char('?')) => state.overlay = Overlay::Help,
-        (Overlay::Help, KeyCode::Char('?') | KeyCode::Esc) | (Overlay::Found, KeyCode::Enter | KeyCode::Esc) => {
+        (Overlay::Help, KeyCode::Char('?') | KeyCode::Esc)
+        | (Overlay::Found, KeyCode::Enter | KeyCode::Esc) => {
             state.overlay = Overlay::None;
         }
         (_, KeyCode::Char('p')) => {
@@ -191,7 +192,11 @@ fn change_power(state: &mut State, session: &Session<'_>, up: bool) {
 
 /// Asks the node how it is doing every few seconds, on its own thread, so a
 /// slow answer never freezes the screen.
-fn watch_node(settings: Settings, updates: Sender<NodeStatus>, running: Arc<AtomicBool>) -> std::thread::JoinHandle<()> {
+fn watch_node(
+    settings: Settings,
+    updates: Sender<NodeStatus>,
+    running: Arc<AtomicBool>,
+) -> std::thread::JoinHandle<()> {
     std::thread::spawn(move || {
         while running.load(Ordering::Relaxed) {
             if updates.send(node_status(&settings)).is_err() {
@@ -231,9 +236,7 @@ fn cores() -> usize {
 }
 
 fn unix_now() -> u64 {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map_or(0, |d| d.as_secs())
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs())
 }
 
 #[cfg(test)]

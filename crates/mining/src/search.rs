@@ -166,12 +166,7 @@ pub struct Solution {
 ///
 /// On a pre-fork header the space is only 2³² wide, and `attempts` is capped
 /// at that so a large budget cannot silently re-search ground it has covered.
-pub fn search(
-    midstate: &PowMidstate,
-    target: &Target,
-    start: NonceSpace,
-    attempts: u64,
-) -> SearchResult {
+pub fn search(midstate: &PowMidstate, target: &Target, start: NonceSpace, attempts: u64) -> SearchResult {
     let words = midstate.nonce_words();
 
     // A pre-fork header exposes 2^32 points and no more, so an attempt budget
@@ -211,13 +206,7 @@ pub fn search(
         at.advance(words);
     }
 
-    SearchResult {
-        solution: None,
-        hashes,
-        next: at,
-        best,
-        best_at,
-    }
+    SearchResult { solution: None, hashes, next: at, best, best_at }
 }
 
 #[cfg(test)]
@@ -226,27 +215,12 @@ mod tests {
 
     #[test]
     fn nonce_words_carry_in_order() {
-        let mut at = NonceSpace {
-            nonce: u32::MAX,
-            ..Default::default()
-        };
+        let mut at = NonceSpace { nonce: u32::MAX, ..Default::default() };
         at.advance(4);
-        assert_eq!(
-            at,
-            NonceSpace {
-                nonce: 0,
-                nonce2: 1,
-                ..Default::default()
-            }
-        );
+        assert_eq!(at, NonceSpace { nonce: 0, nonce2: 1, ..Default::default() });
 
         // A carry that ripples the whole way across.
-        let mut at = NonceSpace {
-            nonce: u32::MAX,
-            nonce2: u32::MAX,
-            nonce3: u32::MAX,
-            time_offset: 7,
-        };
+        let mut at = NonceSpace { nonce: u32::MAX, nonce2: u32::MAX, nonce3: u32::MAX, time_offset: 7 };
         at.advance(4);
         assert_eq!(at, NonceSpace { nonce: 0, nonce2: 0, nonce3: 0, time_offset: 8 });
     }

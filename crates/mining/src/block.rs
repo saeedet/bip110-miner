@@ -60,17 +60,10 @@ impl BlockBuilder {
         txids: Vec<Hash256>,
     ) -> Result<Self, BlockError> {
         if transactions.len() != txids.len() {
-            return Err(BlockError::CountMismatch {
-                transactions: transactions.len(),
-                txids: txids.len(),
-            });
+            return Err(BlockError::CountMismatch { transactions: transactions.len(), txids: txids.len() });
         }
 
-        Ok(Self {
-            coinbase,
-            transactions,
-            txids,
-        })
+        Ok(Self { coinbase, transactions, txids })
     }
 
     /// The merkle root over the coinbase and every other transaction.
@@ -168,10 +161,9 @@ impl std::fmt::Display for BlockError {
                 "{transactions} transactions but {txids} txids — \
                  the merkle root would not match the block"
             ),
-            Self::TooManyTransactions(count) => write!(
-                f,
-                "{count} transactions will not fit the header's 16-bit txcount field"
-            ),
+            Self::TooManyTransactions(count) => {
+                write!(f, "{count} transactions will not fit the header's 16-bit txcount field")
+            }
         }
     }
 }

@@ -87,7 +87,12 @@ fn reward_address_choice() {
     ));
     let screen = render(
         "getting set up",
-        &items([COMPUTER, (Mark::Done, "Knots 29.4.2"), (Mark::Now, "not set"), (Mark::Waiting, "starting the node…")]),
+        &items([
+            COMPUTER,
+            (Mark::Done, "Knots 29.4.2"),
+            (Mark::Now, "not set"),
+            (Mark::Waiting, "starting the node…"),
+        ]),
         &body,
         "↑↓ choose · enter confirm · q quit",
         80,
@@ -108,7 +113,12 @@ fn passphrase_is_never_shown() {
     ];
     let screen = render(
         "getting set up",
-        &items([COMPUTER, (Mark::Done, "Knots 29.4.2"), (Mark::Now, "creating a wallet"), (Mark::Waiting, "")]),
+        &items([
+            COMPUTER,
+            (Mark::Done, "Knots 29.4.2"),
+            (Mark::Now, "creating a wallet"),
+            (Mark::Waiting, ""),
+        ]),
         &body,
         "enter continue · esc back",
         80,
@@ -133,7 +143,12 @@ fn catching_up() {
     ];
     let screen = render(
         "getting set up",
-        &items([COMPUTER, (Mark::Done, "Knots 29.4.2"), (Mark::Done, "bc1qw508…f3t4"), (Mark::Now, "catching up")]),
+        &items([
+            COMPUTER,
+            (Mark::Done, "Knots 29.4.2"),
+            (Mark::Done, "bc1qw508…f3t4"),
+            (Mark::Now, "catching up"),
+        ]),
         &body,
         "q quit (progress is kept) · mining starts on its own",
         80,

@@ -108,10 +108,7 @@ impl RpcClient {
     /// for a rule that is not yet active costs nothing; the node simply does
     /// not set the version bit, and [`BlockTemplate::header_v2`] reports false.
     pub fn get_block_template(&self) -> Result<BlockTemplate, RpcError> {
-        self.call(
-            "getblocktemplate",
-            json!([{ "rules": ["segwit", "blake2b"], "mode": "template" }]),
-        )
+        self.call("getblocktemplate", json!([{ "rules": ["segwit", "blake2b"], "mode": "template" }]))
     }
 
     /// Submits a solved block.

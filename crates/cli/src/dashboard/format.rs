@@ -90,11 +90,7 @@ pub fn uptime(seconds: u64, spaced: bool) -> String {
 /// A number as superscript digits: `³⁴`.
 pub fn superscript(number: u32) -> String {
     const DIGITS: [char; 10] = ['⁰', '¹', '²', '³', '⁴', '⁵', '⁶', '⁷', '⁸', '⁹'];
-    number
-        .to_string()
-        .chars()
-        .map(|c| DIGITS[c.to_digit(10).unwrap_or(0) as usize])
-        .collect()
+    number.to_string().chars().map(|c| DIGITS[c.to_digit(10).unwrap_or(0) as usize]).collect()
 }
 
 /// Satoshis as coins, without trailing zeros: `3.1262`.

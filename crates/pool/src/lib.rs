@@ -102,8 +102,7 @@ pub fn run(options: &Options, sink: Arc<dyn Sink>, stop: Arc<AtomicBool>) -> Res
     // whether the node finished syncing: that answer is latched to false and
     // never revisited, so a node that later loses every peer still claims to be
     // caught up. See the `readiness` module.
-    let Some((info, peers)) = wait_until_ready(&client, options.network, sink.as_ref(), &stop)?
-    else {
+    let Some((info, peers)) = wait_until_ready(&client, options.network, sink.as_ref(), &stop)? else {
         return Ok(());
     };
 
@@ -338,9 +337,7 @@ fn poll_templates(
                         None
                     };
 
-                    match job_builder::build(
-                        job_id, &template, payout_script, headline, window, clean,
-                    ) {
+                    match job_builder::build(job_id, &template, payout_script, headline, window, clean) {
                         Ok(active) => {
                             let height = active.height;
                             let transactions = active.block.transactions.len();
@@ -363,9 +360,7 @@ fn poll_templates(
                                 // should be visible rather than incidental.
                                 if let Some(window) = window {
                                     sink.emit(Event::MinimumDifficulty {
-                                        difficulty: bip110_primitives::Target::difficulty(
-                                            job.job.bits,
-                                        ),
+                                        difficulty: bip110_primitives::Target::difficulty(job.job.bits),
                                         seconds_ahead: window.seconds_ahead_of(unix_now()),
                                     });
                                 }
@@ -378,8 +373,7 @@ fn poll_templates(
                                 });
                             }
 
-                            let notify =
-                                Request::notification(method::NOTIFY, job.job.to_notify_params());
+                            let notify = Request::notification(method::NOTIFY, job.job.to_notify_params());
                             if let Ok(line) = serde_json::to_string(&notify) {
                                 state.broadcast(&line);
                             }
@@ -453,10 +447,7 @@ fn poll_templates(
 /// There is no field for it. The template says whether *this* block needs a v2
 /// header; the fork block is the one where that is true and it was not true for
 /// the parent, so the parent's header is what has to be looked at.
-fn is_fork_block(
-    client: &RpcClient,
-    template: &node_rpc::BlockTemplate,
-) -> Result<bool, node_rpc::RpcError> {
+fn is_fork_block(client: &RpcClient, template: &node_rpc::BlockTemplate) -> Result<bool, node_rpc::RpcError> {
     if !template.header_v2() {
         return Ok(false);
     }
@@ -527,8 +518,7 @@ fn recheck_readiness(
     }
     *last_check = std::time::Instant::now();
 
-    let (Ok(info), Ok(peers)) = (client.get_blockchain_info(), client.get_connection_count())
-    else {
+    let (Ok(info), Ok(peers)) = (client.get_blockchain_info(), client.get_connection_count()) else {
         // A failure to ask is not a failure of the node; the template-outage
         // timer is what handles an unreachable one.
         warn(sink, "cannot re-check node readiness".to_owned());
@@ -567,9 +557,7 @@ fn recheck_readiness(
 
 /// Seconds since the Unix epoch.
 fn unix_now() -> i64 {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map_or(0, |d| d.as_secs() as i64)
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs() as i64)
 }
 
 /// Works out where block rewards should go: the address and its script.
@@ -611,14 +599,10 @@ fn resolve_payout_script(client: &RpcClient, options: &Options) -> Result<(Strin
         .into());
     }
 
-    let script = hex::decode(
-        info.script_pubkey
-            .as_deref()
-            .ok_or("validateaddress returned no scriptPubKey")?,
-    )?;
+    let script =
+        hex::decode(info.script_pubkey.as_deref().ok_or("validateaddress returned no scriptPubKey")?)?;
     Ok((address, script))
 }
-
 
 /// Reports a warning that does not stop the pool.
 fn warn(sink: &dyn Sink, text: String) {

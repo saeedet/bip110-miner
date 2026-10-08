@@ -1,0 +1,6 @@
+# One formatting style for every crate, checked in CI with `cargo fmt --check`.
+#
+# Chosen to fit the code as it was already written: 110 columns, and short
+# expressions kept on one line rather than spread vertically.
+max_width = 110
+use_small_heuristics = "Max"

@@ -237,13 +237,7 @@ impl Blake2bMidstate {
         debug_assert_eq!(h2_hasher.bytes_written(), 0x40 + 0x60);
         let h2 = h2_hasher.finalize();
 
-        Self {
-            stage3: Self::stage3(&h2, &header.extranonce),
-            h2,
-            prev_hidden,
-            xor_mask,
-            flags: header.flags,
-        }
+        Self { stage3: Self::stage3(&h2, &header.extranonce), h2, prev_hidden, xor_mask, flags: header.flags }
     }
 
     /// The consensus digest — `h2` — that a Stratum job carries as `coinb1`.
@@ -354,10 +348,5 @@ impl Blake2bMidstate {
 /// Convenience over [`PowMidstate`], for validating a block rather than mining
 /// one. A miner should build the midstate once and sweep nonces against it.
 pub fn pow_hash(header: &BlockHeader) -> Hash256 {
-    PowMidstate::new(header).hash(
-        header.nonce,
-        header.nonce2,
-        header.nonce3,
-        header.time_offset,
-    )
+    PowMidstate::new(header).hash(header.nonce, header.nonce2, header.nonce3, header.time_offset)
 }

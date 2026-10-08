@@ -152,17 +152,11 @@ impl CoinbaseBuilder {
             None => Vec::new(),
         };
 
-        let mut outputs = vec![TxOut {
-            value: self.value,
-            script_pubkey: self.payout_script.clone(),
-        }];
+        let mut outputs = vec![TxOut { value: self.value, script_pubkey: self.payout_script.clone() }];
 
         // The commitment output pays zero — it exists only to be committed to.
         if let Some(script) = &self.witness_commitment {
-            outputs.push(TxOut {
-                value: 0,
-                script_pubkey: script.clone(),
-            });
+            outputs.push(TxOut { value: 0, script_pubkey: script.clone() });
         }
 
         Ok(Transaction {

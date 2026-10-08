@@ -108,8 +108,9 @@ impl File {
     /// Reads the settings, or an empty set if there is no file yet.
     pub fn load(path: &Path) -> Result<Self, String> {
         match std::fs::read_to_string(path) {
-            Ok(text) => toml::from_str(&text)
-                .map_err(|error| format!("{} is not valid: {error}", path.display())),
+            Ok(text) => {
+                toml::from_str(&text).map_err(|error| format!("{} is not valid: {error}", path.display()))
+            }
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(Self::default()),
             Err(error) => Err(format!("cannot read {}: {error}", path.display())),
         }
@@ -257,11 +258,7 @@ mod tests {
 
     #[test]
     fn the_file_round_trips() {
-        let mut file = File {
-            network: Some("mainnet".into()),
-            power: Some(Power::Eco),
-            ..File::default()
-        };
+        let mut file = File { network: Some("mainnet".into()), power: Some(Power::Eco), ..File::default() };
         file.address.insert("mainnet".into(), "bc1qexample".into());
         file.node.rpc_port = Some(8342);
 

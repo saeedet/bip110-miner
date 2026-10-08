@@ -23,19 +23,15 @@ pub struct Credentials(String);
 impl Credentials {
     /// Reads the cookie file bitcoind wrote at startup.
     pub fn from_cookie_file(path: &Path) -> Result<Self, AuthError> {
-        let contents = std::fs::read_to_string(path).map_err(|source| AuthError::Unreadable {
-            path: path.to_path_buf(),
-            source,
-        })?;
+        let contents = std::fs::read_to_string(path)
+            .map_err(|source| AuthError::Unreadable { path: path.to_path_buf(), source })?;
 
         // The file has no trailing newline, but trim anyway rather than send a
         // stray byte in an auth header and get an opaque 401 back.
         let trimmed = contents.trim();
 
         if !trimmed.contains(':') {
-            return Err(AuthError::Malformed {
-                path: path.to_path_buf(),
-            });
+            return Err(AuthError::Malformed { path: path.to_path_buf() });
         }
 
         Ok(Self(trimmed.to_owned()))
@@ -61,8 +57,7 @@ impl fmt::Debug for Credentials {
 /// the implementation. Each 3 input bytes become 4 output characters of 6 bits
 /// each; a short final chunk is zero-filled and marked with `=`.
 fn base64_encode(input: &[u8]) -> String {
-    const ALPHABET: &[u8; 64] =
-        b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
     let mut out = String::with_capacity(input.len().div_ceil(3) * 4);
 
@@ -150,10 +145,7 @@ mod tests {
     #[test]
     fn cookie_becomes_a_basic_header() {
         let credentials = Credentials("__cookie__:secret".to_owned());
-        assert_eq!(
-            credentials.authorization_header(),
-            "Basic X19jb29raWVfXzpzZWNyZXQ="
-        );
+        assert_eq!(credentials.authorization_header(), "Basic X19jb29raWVfXzpzZWNyZXQ=");
     }
 
     /// The secret must not leak through `Debug`.

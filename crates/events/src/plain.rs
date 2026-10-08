@@ -76,9 +76,7 @@ pub fn render(event: &Event) -> Vec<(Stream, String)> {
                 seconds_ahead % 60,
             )
         } else {
-            format!(
-                "  minimum difficulty ({difficulty:.0}) — the window is open on its own, no clock pushed"
-            )
+            format!("  minimum difficulty ({difficulty:.0}) — the window is open on its own, no clock pushed")
         }),
         Event::DifficultyChanged { height, job_id, difficulty, miners } => out(format!(
             "DIFFICULTY CHANGED at height {height} — job {job_id} (difficulty {difficulty:.4}, {miners} miners)"
@@ -109,15 +107,15 @@ pub fn render(event: &Event) -> Vec<(Stream, String)> {
         Event::ShareChecked { peer, zero_bits, hash } => {
             out(format!("[{peer}] share {zero_bits} zero bits  {hash}"))
         }
-        Event::BlockHeld { seconds } => out(format!(
-            "  block solved early — holding {seconds}s until it can be submitted"
-        )),
+        Event::BlockHeld { seconds } => {
+            out(format!("  block solved early — holding {seconds}s until it can be submitted"))
+        }
 
         // --- miner ----------------------------------------------------------
         Event::Connecting { pool } => out(format!("connecting to {pool}")),
-        Event::Subscribed { extranonce1, extranonce2_size } => out(format!(
-            "subscribed: extranonce1 {extranonce1}, extranonce2 {extranonce2_size} bytes"
-        )),
+        Event::Subscribed { extranonce1, extranonce2_size } => {
+            out(format!("subscribed: extranonce1 {extranonce1}, extranonce2 {extranonce2_size} bytes"))
+        }
         Event::Authorized { worker } => out(format!("authorized as {worker}\n")),
         Event::Hashing { threads, cores } => out(format!(
             "hashing on {threads} of {cores} cores{}\n",
@@ -205,7 +203,11 @@ mod tests {
             "\n*** BLOCK FOUND at height 2253 ***\n    40ed\n    submitted by 127.0.0.1:52040 and accepted by the node\n"
         );
         assert_eq!(
-            text(Event::BlockStale { peer: "127.0.0.1:52040".into(), hash: "47e8".into(), reason: "inconclusive".into() }),
+            text(Event::BlockStale {
+                peer: "127.0.0.1:52040".into(),
+                hash: "47e8".into(),
+                reason: "inconclusive".into()
+            }),
             "[127.0.0.1:52040] block 47e8 not adopted (inconclusive)"
         );
         assert_eq!(
@@ -280,7 +282,8 @@ mod tests {
     /// Failures go to stderr, exactly as eprintln! sent them.
     #[test]
     fn failures_go_to_stderr() {
-        let rejected = render(&Event::BlockRejected { peer: "p".into(), hash: "h".into(), reason: "r".into() });
+        let rejected =
+            render(&Event::BlockRejected { peer: "p".into(), hash: "h".into(), reason: "r".into() });
         assert!(rejected.iter().all(|(stream, _)| *stream == Stream::Err));
         assert_eq!(render(&Event::ShareRejected { reason: "x".into() })[0].0, Stream::Err);
         assert_eq!(render(&Event::Log { level: Level::Warn, text: "w".into() })[0].0, Stream::Err);

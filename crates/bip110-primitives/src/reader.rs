@@ -36,15 +36,9 @@ impl<'a> Reader<'a> {
 
     /// Reads exactly `count` bytes.
     pub fn read_bytes(&mut self, count: usize) -> Result<&'a [u8], ReadError> {
-        let end = self
-            .position
-            .checked_add(count)
-            .ok_or(ReadError::UnexpectedEnd)?;
+        let end = self.position.checked_add(count).ok_or(ReadError::UnexpectedEnd)?;
 
-        let slice = self
-            .bytes
-            .get(self.position..end)
-            .ok_or(ReadError::UnexpectedEnd)?;
+        let slice = self.bytes.get(self.position..end).ok_or(ReadError::UnexpectedEnd)?;
 
         self.position = end;
         Ok(slice)
@@ -52,10 +46,7 @@ impl<'a> Reader<'a> {
 
     /// Reads a fixed-size array.
     fn read_array<const N: usize>(&mut self) -> Result<[u8; N], ReadError> {
-        Ok(self
-            .read_bytes(N)?
-            .try_into()
-            .expect("read_bytes returned exactly N bytes"))
+        Ok(self.read_bytes(N)?.try_into().expect("read_bytes returned exactly N bytes"))
     }
 
     /// Reads a little-endian `u32`.

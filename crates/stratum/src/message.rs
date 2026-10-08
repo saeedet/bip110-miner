@@ -78,20 +78,12 @@ pub struct Request {
 impl Request {
     /// Builds a request that expects a reply.
     pub fn call(id: u64, method: impl Into<String>, params: Value) -> Self {
-        Self {
-            id: Some(id),
-            method: method.into(),
-            params,
-        }
+        Self { id: Some(id), method: method.into(), params }
     }
 
     /// Builds a notification, which expects no reply.
     pub fn notification(method: impl Into<String>, params: Value) -> Self {
-        Self {
-            id: None,
-            method: method.into(),
-            params,
-        }
+        Self { id: None, method: method.into(), params }
     }
 
     /// Whether this is a notification.
@@ -116,20 +108,12 @@ pub struct Response {
 impl Response {
     /// Builds a successful reply.
     pub fn ok(id: Option<u64>, result: Value) -> Self {
-        Self {
-            id,
-            result,
-            error: None,
-        }
+        Self { id, result, error: None }
     }
 
     /// Builds a failure reply.
     pub fn error(id: Option<u64>, error: StratumError) -> Self {
-        Self {
-            id,
-            result: Value::Null,
-            error: Some(error),
-        }
+        Self { id, result: Value::Null, error: Some(error) }
     }
 
     /// Whether the call succeeded.

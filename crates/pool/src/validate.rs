@@ -37,9 +37,7 @@ const MAX_SUBMISSION_HOLD: i64 = 30 * 60;
 
 /// Seconds since the Unix epoch.
 fn unix_now() -> i64 {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map_or(0, |d| d.as_secs() as i64)
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs() as i64)
 }
 
 /// What the pool made of a share.
@@ -121,10 +119,7 @@ pub fn check(
     let hash = pow_hash(&header);
 
     if !active.network_target.is_met_by(&hash) {
-        return Ok(Verdict::Share {
-            hash,
-            zero_bits: hash.leading_zero_bits(),
-        });
+        return Ok(Verdict::Share { hash, zero_bits: hash.leading_zero_bits() });
     }
 
     // A real block. Serialise and submit it.
@@ -143,14 +138,8 @@ pub fn check(
         }
     }
 
-    match client
-        .submit_block(&hex::encode(&raw))
-        .map_err(|error| ValidationError::Rpc(error.to_string()))?
-    {
-        None => Ok(Verdict::BlockAccepted {
-            hash,
-            height: active.height,
-        }),
+    match client.submit_block(&hex::encode(&raw)).map_err(|error| ValidationError::Rpc(error.to_string()))? {
+        None => Ok(Verdict::BlockAccepted { hash, height: active.height }),
         // These two mean "valid, but not the tip" rather than "malformed".
         Some(reason) if reason == "inconclusive" || reason == "duplicate" => {
             Ok(Verdict::BlockStale { reason, hash })

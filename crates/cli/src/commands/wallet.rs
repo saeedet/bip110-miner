@@ -27,7 +27,11 @@ pub fn run(settings: &Settings) -> Result<(), String> {
     let valid = client.validate_address(address).map(|info| info.is_valid).unwrap_or(false);
     println!(
         "network   {}",
-        if valid { format!("valid for {}", network_key(settings.network)) } else { format!("NOT valid for {}", network_key(settings.network)) }
+        if valid {
+            format!("valid for {}", network_key(settings.network))
+        } else {
+            format!("NOT valid for {}", network_key(settings.network))
+        }
     );
 
     let unopenable = open_wallets(&client);

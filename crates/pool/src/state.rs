@@ -59,10 +59,7 @@ impl PoolState {
         let (refresh, wakeups) = channel();
 
         let state = Self {
-            inner: Mutex::new(Inner {
-                jobs: VecDeque::new(),
-                subscribers: Vec::new(),
-            }),
+            inner: Mutex::new(Inner { jobs: VecDeque::new(), subscribers: Vec::new() }),
             next_connection_id: AtomicU64::new(1),
             next_job_id: AtomicU64::new(1),
             refresh,
@@ -102,12 +99,7 @@ impl PoolState {
 
     /// The job miners should currently be working on.
     pub fn current_job(&self) -> Option<Arc<ActiveJob>> {
-        self.inner
-            .lock()
-            .expect("pool state mutex poisoned")
-            .jobs
-            .front()
-            .map(Arc::clone)
+        self.inner.lock().expect("pool state mutex poisoned").jobs.front().map(Arc::clone)
     }
 
     /// Looks up a job by id, including recently retired ones.
@@ -123,11 +115,7 @@ impl PoolState {
 
     /// Registers a connection to receive pushed work.
     pub fn subscribe(&self, id: u64, outbound: Sender<String>) {
-        self.inner
-            .lock()
-            .expect("pool state mutex poisoned")
-            .subscribers
-            .push(Subscriber { id, outbound });
+        self.inner.lock().expect("pool state mutex poisoned").subscribers.push(Subscriber { id, outbound });
     }
 
     /// Removes a connection.
@@ -146,17 +134,11 @@ impl PoolState {
     /// notice the closed socket and clean up the rest.
     pub fn broadcast(&self, line: &str) {
         let mut inner = self.inner.lock().expect("pool state mutex poisoned");
-        inner
-            .subscribers
-            .retain(|subscriber| subscriber.outbound.send(line.to_owned()).is_ok());
+        inner.subscribers.retain(|subscriber| subscriber.outbound.send(line.to_owned()).is_ok());
     }
 
     /// How many miners are connected.
     pub fn subscriber_count(&self) -> usize {
-        self.inner
-            .lock()
-            .expect("pool state mutex poisoned")
-            .subscribers
-            .len()
+        self.inner.lock().expect("pool state mutex poisoned").subscribers.len()
     }
 }

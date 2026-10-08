@@ -7,10 +7,7 @@ fn hex(bytes: &[u8]) -> String {
 /// The NIST vectors, which pin the compression function and the padding.
 #[test]
 fn nist_sha256_vectors() {
-    assert_eq!(
-        hex(&sha256::sha256(b"")),
-        "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-    );
+    assert_eq!(hex(&sha256::sha256(b"")), "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
     assert_eq!(
         hex(&sha256::sha256(b"abc")),
         "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
@@ -42,19 +39,13 @@ fn bip340_tagged_hashes() {
 /// point of tagging, so it is worth asserting rather than assuming.
 #[test]
 fn tags_domain_separate() {
-    assert_ne!(
-        sha256::tagged_hash(b"tag one", b"same data"),
-        sha256::tagged_hash(b"tag two", b"same data"),
-    );
+    assert_ne!(sha256::tagged_hash(b"tag one", b"same data"), sha256::tagged_hash(b"tag two", b"same data"),);
 }
 
 /// A tagged hash is not a plain hash of tag and data concatenated.
 #[test]
 fn tagging_is_not_concatenation() {
-    assert_ne!(
-        sha256::tagged_hash(b"abc", b"def"),
-        sha256::sha256(b"abcdef"),
-    );
+    assert_ne!(sha256::tagged_hash(b"abc", b"def"), sha256::sha256(b"abcdef"),);
 }
 
 /// The incremental builder must agree with the one-shot form, and must report
@@ -67,10 +58,7 @@ fn builder_matches_one_shot() {
     hasher.write(&[0u8; 32]);
     assert_eq!(hasher.bytes_written(), 0x40 + 32);
 
-    assert_eq!(
-        hasher.finalize(),
-        sha256::tagged_hash(b"Merge-mining hook", &[0u8; 32]),
-    );
+    assert_eq!(hasher.finalize(), sha256::tagged_hash(b"Merge-mining hook", &[0u8; 32]),);
 }
 
 /// Field order must matter — a hasher that ignored it would silently accept a

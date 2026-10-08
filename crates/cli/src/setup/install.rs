@@ -66,15 +66,17 @@ fn knots_dir() -> PathBuf {
 /// Offers to install Knots, or to update the one found (`found`).
 ///
 /// On success, the node software at `settings.binaries` is ready to start.
-pub fn offer(wizard: &mut Wizard, settings: &mut Settings, found: Option<(u32, u32, u32)>) -> Result<Answer<()>, String> {
+pub fn offer(
+    wizard: &mut Wizard,
+    settings: &mut Settings,
+    found: Option<(u32, u32, u32)>,
+) -> Result<Answer<()>, String> {
     let mut intro = match found {
-        None => vec![
-            Part::Text(
-                "The node is the program that talks to the BIP-110 network and checks every block \
+        None => vec![Part::Text(
+            "The node is the program that talks to the BIP-110 network and checks every block \
                  for itself. It's called Bitcoin Knots, and it's free."
-                    .into(),
-            ),
-        ],
+                .into(),
+        )],
         Some(version) => vec![
             Part::Text(format!(
                 "This computer has Knots {}. The network changed a rule at block 973,440 that this \
@@ -102,7 +104,11 @@ pub fn offer(wizard: &mut Wizard, settings: &mut Settings, found: Option<(u32, u
 
     let action = if found.is_some() { "Update to" } else { "Download" };
     let choices = vec![
-        format!("{action} Knots {} and check it's the official file    ({})", RELEASE.version, download::size(RELEASE.bytes)),
+        format!(
+            "{action} Knots {} and check it's the official file    ({})",
+            RELEASE.version,
+            download::size(RELEASE.bytes)
+        ),
         "I'll install it myself — show me how".to_owned(),
     ];
     match wizard.choose(&intro, &choices)? {
@@ -128,7 +134,8 @@ pub fn offer(wizard: &mut Wizard, settings: &mut Settings, found: Option<(u32, u
 /// Downloads, checks, unpacks and links the release.
 fn install(wizard: &mut Wizard, settings: &mut Settings) -> Result<Answer<()>, String> {
     let archive = knots_dir().join("downloads").join(RELEASE.version).join(RELEASE.file);
-    let intro = vec![Part::Text(format!("Downloading Bitcoin Knots {} from {}…", RELEASE.version, host(&url())))];
+    let intro =
+        vec![Part::Text(format!("Downloading Bitcoin Knots {} from {}…", RELEASE.version, host(&url())))];
     if let Fetched::Stopped = download::fetch(wizard, &intro, &url(), &archive, RELEASE.bytes)? {
         return Ok(Answer::Quit);
     }
@@ -195,7 +202,8 @@ fn unpack(archive: &Path) -> Result<PathBuf, String> {
     let current = dir.join("current");
     let link = dir.join("current.new");
     let _ = std::fs::remove_file(&link);
-    std::os::unix::fs::symlink(RELEASE.version, &link).map_err(|error| format!("cannot link Knots: {error}"))?;
+    std::os::unix::fs::symlink(RELEASE.version, &link)
+        .map_err(|error| format!("cannot link Knots: {error}"))?;
     std::fs::rename(&link, &current).map_err(|error| format!("cannot link Knots: {error}"))?;
     Ok(current)
 }

@@ -56,12 +56,7 @@ impl HttpClient {
     /// `path` is almost always `/`. The exception is a wallet RPC on a node
     /// with more than one wallet loaded, which must be addressed as
     /// `/wallet/<name>` — see [`RpcClient::call_wallet`](crate::RpcClient::call_wallet).
-    pub fn post_json(
-        &self,
-        path: &str,
-        authorization: &str,
-        body: &str,
-    ) -> Result<Response, HttpError> {
+    pub fn post_json(&self, path: &str, authorization: &str, body: &str) -> Result<Response, HttpError> {
         let stream = TcpStream::connect_timeout(&self.address, self.timeout)
             .map_err(|source| HttpError::Connect { source })?;
 
@@ -114,9 +109,7 @@ fn read_response(stream: TcpStream) -> Result<Response, HttpError> {
         .split_whitespace()
         .nth(1)
         .and_then(|code| code.parse::<u16>().ok())
-        .ok_or_else(|| HttpError::BadStatusLine {
-            line: status_line.trim().to_owned(),
-        })?;
+        .ok_or_else(|| HttpError::BadStatusLine { line: status_line.trim().to_owned() })?;
 
     // --- Headers, until a blank line ---
     let mut content_length = None;

@@ -27,9 +27,7 @@
 /// Never in practice: it would require a message of 2^61 bytes (2 exabytes)
 /// to overflow the bit-length counter.
 pub fn pad(message: &[u8]) -> Vec<u8> {
-    let bit_len = (message.len() as u64)
-        .checked_mul(8)
-        .expect("message length in bits overflows u64");
+    let bit_len = (message.len() as u64).checked_mul(8).expect("message length in bits overflows u64");
 
     let mut padded = Vec::with_capacity(padded_len(message.len()));
     padded.extend_from_slice(message);

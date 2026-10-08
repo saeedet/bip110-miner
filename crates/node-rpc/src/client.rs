@@ -106,10 +106,7 @@ impl RpcClient {
     /// permanently unauthorised.
     fn reload_credentials(&self) -> Result<(), RpcError> {
         let fresh = Credentials::from_cookie_file(&self.cookie_path)?;
-        *self
-            .credentials
-            .write()
-            .expect("credentials lock poisoned") = fresh;
+        *self.credentials.write().expect("credentials lock poisoned") = fresh;
         Ok(())
     }
 
@@ -149,10 +146,7 @@ impl RpcClient {
         // something in a URI. Only the small set this project uses is allowed
         // through, rather than half-escaping something that then goes into a
         // request line.
-        if !wallet
-            .bytes()
-            .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_' || b == b'.')
-        {
+        if !wallet.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_' || b == b'.') {
             return Err(RpcError::BadWalletName(wallet.to_owned()));
         }
 
@@ -160,12 +154,7 @@ impl RpcClient {
     }
 
     /// The shared body of [`Self::call`] and [`Self::call_wallet`].
-    fn call_at<T: DeserializeOwned>(
-        &self,
-        path: &str,
-        method: &str,
-        params: Value,
-    ) -> Result<T, RpcError> {
+    fn call_at<T: DeserializeOwned>(&self, path: &str, method: &str, params: Value) -> Result<T, RpcError> {
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
 
         let request = json!({
@@ -206,35 +195,22 @@ impl RpcClient {
             return Err(RpcError::Rpc {
                 method: method.to_owned(),
                 code: error.get("code").and_then(Value::as_i64).unwrap_or(0),
-                message: error
-                    .get("message")
-                    .and_then(Value::as_str)
-                    .unwrap_or("(no message)")
-                    .to_owned(),
+                message: error.get("message").and_then(Value::as_str).unwrap_or("(no message)").to_owned(),
             });
         }
 
-        let result = parsed
-            .get("result")
-            .ok_or_else(|| RpcError::MissingResult {
-                method: method.to_owned(),
-            })?;
+        let result =
+            parsed.get("result").ok_or_else(|| RpcError::MissingResult { method: method.to_owned() })?;
 
-        serde_json::from_value(result.clone()).map_err(|source| RpcError::UnexpectedShape {
-            method: method.to_owned(),
-            source,
-        })
+        serde_json::from_value(result.clone())
+            .map_err(|source| RpcError::UnexpectedShape { method: method.to_owned(), source })
     }
 }
 
 impl RpcClient {
     /// Sends one request with the credentials currently held.
     fn post(&self, path: &str, request: &str) -> Result<crate::http::Response, RpcError> {
-        let header = self
-            .credentials
-            .read()
-            .expect("credentials lock poisoned")
-            .authorization_header();
+        let header = self.credentials.read().expect("credentials lock poisoned").authorization_header();
 
         Ok(self.http.post_json(path, &header, request)?)
     }
@@ -352,9 +328,7 @@ impl std::error::Error for RpcError {
         match self {
             Self::Auth(source) => Some(source),
             Self::Http(source) => Some(source),
-            Self::MalformedResponse { source, .. } | Self::UnexpectedShape { source, .. } => {
-                Some(source)
-            }
+            Self::MalformedResponse { source, .. } | Self::UnexpectedShape { source, .. } => Some(source),
             _ => None,
         }
     }

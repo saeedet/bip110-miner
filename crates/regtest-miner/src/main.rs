@@ -46,9 +46,7 @@ fn main() {
 }
 
 fn run() -> Result<(), Box<dyn std::error::Error>> {
-    let blocks_to_mine: u32 = std::env::args()
-        .nth(1)
-        .map_or(Ok(1), |argument| argument.parse())?;
+    let blocks_to_mine: u32 = std::env::args().nth(1).map_or(Ok(1), |argument| argument.parse())?;
 
     let datadir = datadir();
     let client = RpcClient::from_datadir(&datadir, Network::Regtest)?;
@@ -60,12 +58,9 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     // starts, answers, and quietly disagrees about which chain is real.
     let info = client.get_blockchain_info()?;
     if info.chain != Network::Regtest.as_str() {
-        return Err(format!(
-            "expected a regtest node, but {} is running {}",
-            datadir.display(),
-            info.chain
-        )
-        .into());
+        return Err(
+            format!("expected a regtest node, but {} is running {}", datadir.display(), info.chain).into()
+        );
     }
 
     println!("node   : regtest at height {}", info.blocks);
@@ -82,10 +77,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         return Err(format!("the node produced an address it considers invalid: {address}").into());
     }
     let payout_script = hex::decode(
-        address_info
-            .script_pubkey
-            .as_deref()
-            .ok_or("validateaddress returned no scriptPubKey")?,
+        address_info.script_pubkey.as_deref().ok_or("validateaddress returned no scriptPubKey")?,
     )?;
 
     println!("payout : {address}");

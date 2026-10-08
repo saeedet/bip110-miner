@@ -65,11 +65,7 @@ impl Target {
 
         // The three mantissa bytes, most significant first, sit at descending
         // powers of 256 starting from `exponent - 1`.
-        let mantissa_bytes = [
-            (mantissa >> 16) as u8,
-            (mantissa >> 8) as u8,
-            mantissa as u8,
-        ];
+        let mantissa_bytes = [(mantissa >> 16) as u8, (mantissa >> 8) as u8, mantissa as u8];
 
         for (i, &byte) in mantissa_bytes.iter().enumerate() {
             let power = exponent - 1 - i as i32;

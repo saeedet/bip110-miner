@@ -36,7 +36,7 @@ use std::sync::mpsc::RecvTimeoutError;
 use std::time::{Duration, Instant};
 
 use bip110_primitives::{Target, hex};
-use events::{Event, LifetimeReport, Level, Report, Sink};
+use events::{Event, Level, LifetimeReport, Report, Sink};
 use serde_json::{Value, json};
 use stratum::{Incoming, Job, Request, method};
 
@@ -93,10 +93,7 @@ pub fn run(options: &Options, sink: Arc<dyn Sink>, controls: Arc<Controls>) -> R
     let subscribe_reply = wait_for_response(&connection, 1)?;
     let (extranonce1, extranonce2_size) = parse_subscription(&subscribe_reply)?;
 
-    sink.emit(Event::Subscribed {
-        extranonce1: hex::encode(&extranonce1),
-        extranonce2_size,
-    });
+    sink.emit(Event::Subscribed { extranonce1: hex::encode(&extranonce1), extranonce2_size });
 
     // --- mining.authorize ---------------------------------------------------
     connection.outbound.send(serde_json::to_string(&Request::call(
@@ -279,12 +276,7 @@ fn install(state: &WorkState, job: Job, extranonce1: &[u8], extranonce2_size: us
         prev_hash: None,
     });
 
-    state.set(Work {
-        job,
-        extranonce1: extranonce1.to_vec(),
-        extranonce2_size,
-        target,
-    });
+    state.set(Work { job, extranonce1: extranonce1.to_vec(), extranonce2_size, target });
 }
 
 /// Reads until the response with `id` arrives, discarding notifications.
@@ -292,10 +284,7 @@ fn install(state: &WorkState, job: Job, extranonce1: &[u8], extranonce2_size: us
 /// The pool may push `set_difficulty` or even a job before answering the
 /// handshake, so anything that is not the reply we are waiting for is skipped
 /// rather than treated as an error.
-fn wait_for_response(
-    connection: &connection::Connection,
-    id: u64,
-) -> Result<Value, Error> {
+fn wait_for_response(connection: &connection::Connection, id: u64) -> Result<Value, Error> {
     let deadline = std::time::Instant::now() + HANDSHAKE_TIMEOUT;
 
     loop {
@@ -325,15 +314,10 @@ fn parse_subscription(result: &Value) -> Result<(Vec<u8>, usize), Error> {
         return Err(format!("subscribe reply has {} elements, expected 3", array.len()).into());
     }
 
-    let extranonce1 = hex::decode(
-        array[1]
-            .as_str()
-            .ok_or("subscribe reply has a non-string extranonce1")?,
-    )?;
+    let extranonce1 = hex::decode(array[1].as_str().ok_or("subscribe reply has a non-string extranonce1")?)?;
 
-    let extranonce2_size = array[2]
-        .as_u64()
-        .ok_or("subscribe reply has a non-numeric extranonce2_size")? as usize;
+    let extranonce2_size =
+        array[2].as_u64().ok_or("subscribe reply has a non-numeric extranonce2_size")? as usize;
 
     // The two halves fill one 16-byte header field, so a pool that assigns a
     // width leaving them short of it has handed us work we cannot do. Caught

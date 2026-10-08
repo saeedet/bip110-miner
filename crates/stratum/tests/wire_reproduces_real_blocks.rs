@@ -20,19 +20,25 @@ use stratum::job::{EXTRANONCE1_SIZE, EXTRANONCE2_SIZE};
 /// because this protocol describes the BLAKE2b pipeline and a v1 block does
 /// not use it.
 const BLOCKS: &[(u32, &str, &str)] = &[
-    (10, "000000a00418ed1ecbfa8008a908a978605e50e485f3bc6a4a51d5e0114bfe47400c837a4a2fd324fde32e577cc21a1eb7c0593765857f57e7033916368befd7f64c353b21509d6affff7f20000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000000000000",
-        "250c77d7227d48cfb8e74e7ae3d700044fc56a2be3984bf34230434167a48209"),
-    (11, "000000a00982a46741433042f34b98e32b6ac54f0400d7e37a4ee7b8cf487d22d7770c25a95f1b3d8824e10d92a4a89d56f5765f35236acec8ddca37e62a3a5a6c36364921509d6affff7f20010000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000b0000000000000000000000000000000000000000000000000000000000000000000000",
-        "74f70f8701988e65966d9267ab49f276848385a1917ef204b10a89d4a9de06aa"),
-    (14, "000000a0e39a58a50808ca23cf5960b3f15109a6b0f9425f4721aafee157b1bf01e0823789fa417ec63fd7fb918778ebcd58fcc8d0c6cd81706eec000b59f2b0d5930b2622509d6affff7f20010000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000000000000",
-        "21e30e02fa0a31bfb455f8a0b64ecee1b110cf95737b29995fce574da8f5697a"),
+    (
+        10,
+        "000000a00418ed1ecbfa8008a908a978605e50e485f3bc6a4a51d5e0114bfe47400c837a4a2fd324fde32e577cc21a1eb7c0593765857f57e7033916368befd7f64c353b21509d6affff7f20000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000000000000",
+        "250c77d7227d48cfb8e74e7ae3d700044fc56a2be3984bf34230434167a48209",
+    ),
+    (
+        11,
+        "000000a00982a46741433042f34b98e32b6ac54f0400d7e37a4ee7b8cf487d22d7770c25a95f1b3d8824e10d92a4a89d56f5765f35236acec8ddca37e62a3a5a6c36364921509d6affff7f20010000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000b0000000000000000000000000000000000000000000000000000000000000000000000",
+        "74f70f8701988e65966d9267ab49f276848385a1917ef204b10a89d4a9de06aa",
+    ),
+    (
+        14,
+        "000000a0e39a58a50808ca23cf5960b3f15109a6b0f9425f4721aafee157b1bf01e0823789fa417ec63fd7fb918778ebcd58fcc8d0c6cd81706eec000b59f2b0d5930b2622509d6affff7f20010000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000000000000",
+        "21e30e02fa0a31bfb455f8a0b64ecee1b110cf95737b29995fce574da8f5697a",
+    ),
 ];
 
 fn unhex(s: &str) -> Vec<u8> {
-    (0..s.len())
-        .step_by(2)
-        .map(|i| u8::from_str_radix(&s[i..i + 2], 16).expect("hex"))
-        .collect()
+    (0..s.len()).step_by(2).map(|i| u8::from_str_radix(&s[i..i + 2], 16).expect("hex")).collect()
 }
 
 /// Reduces a header to the job a pool would send for it.
@@ -73,9 +79,7 @@ fn a_job_carries_enough_to_reproduce_the_block_hash() {
         let midstate = job.midstate(extranonce1, extranonce2).expect("halves fit");
 
         assert_eq!(
-            midstate
-                .hash(header.nonce, header.nonce2, header.nonce3, header.time_offset)
-                .to_string(),
+            midstate.hash(header.nonce, header.nonce2, header.nonce3, header.time_offset).to_string(),
             *expected,
             "height {height}: the job lost something the hash needed"
         );
@@ -98,10 +102,7 @@ fn the_pool_can_reproduce_what_a_miner_claims() {
 
     // A miner that lied about its nonce cannot produce the same hash — which is
     // what makes the pool's re-check meaningful rather than ceremonial.
-    assert_ne!(
-        midstate.hash(header.nonce.wrapping_add(1), 0, 0, 0).to_string(),
-        expected
-    );
+    assert_ne!(midstate.hash(header.nonce.wrapping_add(1), 0, 0, 0).to_string(), expected);
 }
 
 /// The extranonce is split the way Stratum splits it, and both halves have to
@@ -123,9 +124,7 @@ fn both_extranonce_halves_reach_the_hash() {
     let mut moved_pool_half = [0u8; EXTRANONCE1_SIZE];
     moved_pool_half[0] = 1;
     assert_ne!(
-        job.midstate(&moved_pool_half, &[0u8; EXTRANONCE2_SIZE])
-            .expect("halves fit")
-            .hash(0, 0, 0, 0),
+        job.midstate(&moved_pool_half, &[0u8; EXTRANONCE2_SIZE]).expect("halves fit").hash(0, 0, 0, 0),
         baseline,
         "extranonce1 must affect the hash, or miners would collide"
     );
@@ -133,9 +132,7 @@ fn both_extranonce_halves_reach_the_hash() {
     let mut moved_miner_half = [0u8; EXTRANONCE2_SIZE];
     moved_miner_half[0] = 1;
     assert_ne!(
-        job.midstate(&[0u8; EXTRANONCE1_SIZE], &moved_miner_half)
-            .expect("halves fit")
-            .hash(0, 0, 0, 0),
+        job.midstate(&[0u8; EXTRANONCE1_SIZE], &moved_miner_half).expect("halves fit").hash(0, 0, 0, 0),
         baseline,
         "extranonce2 must affect the hash, or a miner could not roll it"
     );

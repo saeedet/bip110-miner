@@ -159,10 +159,7 @@ mod tests {
         // 5 written as a 3-byte encoding.
         assert_eq!(decode(&[0xFD, 0x05, 0x00]), Err(VarIntError::NonCanonical));
         // 300 written as a 5-byte encoding.
-        assert_eq!(
-            decode(&[0xFE, 0x2C, 0x01, 0x00, 0x00]),
-            Err(VarIntError::NonCanonical)
-        );
+        assert_eq!(decode(&[0xFE, 0x2C, 0x01, 0x00, 0x00]), Err(VarIntError::NonCanonical));
     }
 
     #[test]

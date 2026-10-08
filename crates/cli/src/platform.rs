@@ -101,7 +101,11 @@ pub fn unpack(archive: &Path, directory: &Path) -> Result<(), String> {
     if output.status.success() {
         Ok(())
     } else {
-        Err(format!("cannot unpack {}: {}", archive.display(), String::from_utf8_lossy(&output.stderr).trim()))
+        Err(format!(
+            "cannot unpack {}: {}",
+            archive.display(),
+            String::from_utf8_lossy(&output.stderr).trim()
+        ))
     }
 }
 
@@ -117,9 +121,8 @@ pub fn port_in_use(port: u16) -> bool {
 /// The first port from `start` that nothing is listening on and that can be
 /// bound, trying a handful before giving up.
 pub fn free_port_from(start: u16) -> Option<u16> {
-    (start..start.saturating_add(20)).find(|&port| {
-        !port_in_use(port) && std::net::TcpListener::bind(("127.0.0.1", port)).is_ok()
-    })
+    (start..start.saturating_add(20))
+        .find(|&port| !port_in_use(port) && std::net::TcpListener::bind(("127.0.0.1", port)).is_ok())
 }
 
 /// Keeps the machine from sleeping for as long as this value lives.

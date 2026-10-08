@@ -21,21 +21,14 @@ use node_rpc::RpcClient;
 use serde_json::json;
 use stratum::{Incoming, Request, Response, Share, StratumError, method};
 
-use stratum::job::{EXTRANONCE1_SIZE, EXTRANONCE2_SIZE};
 use crate::state::PoolState;
 use crate::validate::{self, Verdict};
+use stratum::job::{EXTRANONCE1_SIZE, EXTRANONCE2_SIZE};
 
 /// Serves one miner until it disconnects.
-pub fn handle(
-    stream: TcpStream,
-    state: Arc<PoolState>,
-    client: Arc<RpcClient>,
-    sink: Arc<dyn Sink>,
-) {
+pub fn handle(stream: TcpStream, state: Arc<PoolState>, client: Arc<RpcClient>, sink: Arc<dyn Sink>) {
     let connection_id = state.allocate_connection_id();
-    let peer = stream
-        .peer_addr()
-        .map_or_else(|_| "<unknown>".to_owned(), |address| address.to_string());
+    let peer = stream.peer_addr().map_or_else(|_| "<unknown>".to_owned(), |address| address.to_string());
 
     // Each connection gets a distinct extranonce1, so two miners can never
     // hash the same input even if they choose the same extranonce2.
@@ -58,10 +51,7 @@ pub fn handle(
     let (outbound, inbox) = channel::<String>();
     std::thread::spawn(move || writer_loop(write_half, inbox));
 
-    sink.emit(Event::MinerConnected {
-        peer: peer.clone(),
-        extranonce1: hex::encode(&extranonce1),
-    });
+    sink.emit(Event::MinerConnected { peer: peer.clone(), extranonce1: hex::encode(&extranonce1) });
 
     let mut session = Session {
         peer: peer.clone(),
@@ -158,10 +148,7 @@ impl Session {
         self.reply(Response::ok(
             request.id,
             json!([
-                [
-                    [method::SET_DIFFICULTY, subscription_id.clone()],
-                    [method::NOTIFY, subscription_id],
-                ],
+                [[method::SET_DIFFICULTY, subscription_id.clone()], [method::NOTIFY, subscription_id],],
                 hex::encode(&self.extranonce1),
                 EXTRANONCE2_SIZE,
             ]),
@@ -175,16 +162,9 @@ impl Session {
     /// There is no account system and nothing to authenticate against: the
     /// pool's only user is whoever is running it. The name is kept for logging.
     fn on_authorize(&mut self, request: &Request) {
-        let worker = request
-            .params
-            .get(0)
-            .and_then(|value| value.as_str())
-            .unwrap_or("<anonymous>");
+        let worker = request.params.get(0).and_then(|value| value.as_str()).unwrap_or("<anonymous>");
 
-        self.sink.emit(Event::MinerAuthorized {
-            peer: self.peer.clone(),
-            worker: worker.to_owned(),
-        });
+        self.sink.emit(Event::MinerAuthorized { peer: self.peer.clone(), worker: worker.to_owned() });
         self.authorized = true;
         self.reply(Response::ok(request.id, json!(true)));
 
@@ -201,10 +181,7 @@ impl Session {
         let share = match Share::from_submit_params(&request.params) {
             Ok(share) => share,
             Err(error) => {
-                self.reply(Response::error(
-                    request.id,
-                    StratumError::other(error.to_string()),
-                ));
+                self.reply(Response::error(request.id, StratumError::other(error.to_string())));
                 return;
             }
         };
@@ -217,11 +194,7 @@ impl Session {
 
         match validate::check(&self.client, &active, &share, &self.extranonce1, self.sink.as_ref()) {
             Ok(Verdict::BlockAccepted { hash, height }) => {
-                self.sink.emit(Event::BlockFound {
-                    height,
-                    hash: hash.to_string(),
-                    peer: self.peer.clone(),
-                });
+                self.sink.emit(Event::BlockFound { height, hash: hash.to_string(), peer: self.peer.clone() });
                 self.reply(Response::ok(request.id, json!(true)));
 
                 // We just moved the tip ourselves. Everything every miner is
@@ -233,11 +206,7 @@ impl Session {
             Ok(Verdict::BlockStale { reason, hash }) => {
                 // Valid work that lost a race, not a fault. Still worth asking
                 // for fresh work, since it means our idea of the tip is behind.
-                self.sink.emit(Event::BlockStale {
-                    peer: self.peer.clone(),
-                    hash: hash.to_string(),
-                    reason,
-                });
+                self.sink.emit(Event::BlockStale { peer: self.peer.clone(), hash: hash.to_string(), reason });
                 self.reply(Response::ok(request.id, json!(true)));
                 self.state.request_refresh();
             }
@@ -263,10 +232,7 @@ impl Session {
             }
             Err(error) => {
                 self.warn(format!("[{}] cannot validate share: {error}", self.peer));
-                self.reply(Response::error(
-                    request.id,
-                    StratumError::other(error.to_string()),
-                ));
+                self.reply(Response::error(request.id, StratumError::other(error.to_string())));
             }
         }
     }
@@ -283,14 +249,8 @@ impl Session {
         // easier shares is hashrate monitoring, and the miner measures its own.
         let difficulty = Target::difficulty(active.job.bits);
 
-        self.send(&Request::notification(
-            method::SET_DIFFICULTY,
-            json!([difficulty]),
-        ));
-        self.send(&Request::notification(
-            method::NOTIFY,
-            active.job.to_notify_params(),
-        ));
+        self.send(&Request::notification(method::SET_DIFFICULTY, json!([difficulty])));
+        self.send(&Request::notification(method::NOTIFY, active.job.to_notify_params()));
     }
 
     fn reply(&self, response: Response) {

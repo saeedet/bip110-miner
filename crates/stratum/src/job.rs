@@ -189,12 +189,7 @@ impl Job {
         extranonce[..extranonce1.len()].copy_from_slice(extranonce1);
         extranonce[extranonce1.len()..].copy_from_slice(extranonce2);
 
-        Ok(PowMidstate::from_stratum_job(
-            &self.consensus_digest,
-            &extranonce,
-            &self.prev_hidden,
-            self.flags,
-        ))
+        Ok(PowMidstate::from_stratum_job(&self.consensus_digest, &extranonce, &self.prev_hidden, self.flags))
     }
 
     /// Whether hashes from this job are masked, and so cannot be judged by the
@@ -256,10 +251,9 @@ impl std::fmt::Display for JobError {
             Self::NotAString(i) => write!(f, "mining.notify parameter {i} was not a string"),
             Self::NotHex(i) => write!(f, "mining.notify parameter {i} was not hex"),
             Self::BadHex(source) => write!(f, "bad hex in mining.notify: {source}"),
-            Self::BadCoinb1Length(n) => write!(
-                f,
-                "coinb1 is {n} bytes; expected 36 (a zero word, then the 32-byte digest)"
-            ),
+            Self::BadCoinb1Length(n) => {
+                write!(f, "coinb1 is {n} bytes; expected 36 (a zero word, then the 32-byte digest)")
+            }
             Self::UnexpectedCoinbaseSuffix => write!(
                 f,
                 "coinb2 was not empty — on this chain the extranonce is in the header, \
@@ -312,17 +306,11 @@ mod tests {
         let mut params = job().to_notify_params();
 
         params[3] = json!("deadbeef");
-        assert_eq!(
-            Job::from_notify_params(&params),
-            Err(JobError::UnexpectedCoinbaseSuffix)
-        );
+        assert_eq!(Job::from_notify_params(&params), Err(JobError::UnexpectedCoinbaseSuffix));
 
         let mut params = job().to_notify_params();
         params[4] = json!(["00".repeat(32)]);
-        assert_eq!(
-            Job::from_notify_params(&params),
-            Err(JobError::UnexpectedMerkleBranch)
-        );
+        assert_eq!(Job::from_notify_params(&params), Err(JobError::UnexpectedMerkleBranch));
     }
 
     /// `coinb1` is the zero word plus the digest, and nothing else fits.
@@ -331,19 +319,13 @@ mod tests {
         let mut params = job().to_notify_params();
         params[2] = json!("00000000cdcd");
 
-        assert_eq!(
-            Job::from_notify_params(&params),
-            Err(JobError::BadCoinb1Length(6))
-        );
+        assert_eq!(Job::from_notify_params(&params), Err(JobError::BadCoinb1Length(6)));
     }
 
     /// The extranonce halves must add up to the header field they fill.
     #[test]
     fn extranonce_halves_must_total_sixteen() {
         let result = job().midstate(&[0u8; 8], &[0u8; 4]);
-        assert_eq!(
-            result.err(),
-            Some(JobError::BadExtranonceLength { extranonce1: 8, extranonce2: 4 })
-        );
+        assert_eq!(result.err(), Some(JobError::BadExtranonceLength { extranonce1: 8, extranonce2: 4 }));
     }
 }

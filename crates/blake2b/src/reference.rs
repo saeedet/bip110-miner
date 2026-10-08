@@ -102,10 +102,7 @@ pub(crate) fn compress(state: &mut [u64; 8], block: &[u8; BLOCK_BYTES], counter:
 ///
 /// If `digest_size` is zero or above 64, which RFC 7693 does not define.
 pub fn hash(message: &[u8], digest_size: usize) -> Vec<u8> {
-    assert!(
-        (1..=64).contains(&digest_size),
-        "BLAKE2b digest size must be 1..=64, got {digest_size}"
-    );
+    assert!((1..=64).contains(&digest_size), "BLAKE2b digest size must be 1..=64, got {digest_size}");
 
     let mut state = IV;
 
@@ -123,9 +120,8 @@ pub fn hash(message: &[u8], digest_size: usize) -> Vec<u8> {
     // finish with a real block rather than a padded empty one.
     let mut offset = 0;
     while message.len() - offset > BLOCK_BYTES {
-        let block: &[u8; BLOCK_BYTES] = message[offset..offset + BLOCK_BYTES]
-            .try_into()
-            .expect("checked length");
+        let block: &[u8; BLOCK_BYTES] =
+            message[offset..offset + BLOCK_BYTES].try_into().expect("checked length");
         offset += BLOCK_BYTES;
         compress(&mut state, block, offset as u128, false);
     }

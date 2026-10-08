@@ -125,10 +125,7 @@ mod tests {
 
     #[test]
     fn two_leaves_combine_directly() {
-        assert_eq!(
-            merkle_root(&[leaf(1), leaf(2)]),
-            Some(combine(leaf(1), leaf(2)))
-        );
+        assert_eq!(merkle_root(&[leaf(1), leaf(2)]), Some(combine(leaf(1), leaf(2))));
     }
 
     /// Three leaves: the third is duplicated to pair with itself.

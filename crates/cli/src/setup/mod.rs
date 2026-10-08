@@ -101,9 +101,13 @@ fn steps(wizard: &mut Wizard, settings: &mut Settings, ask_address: bool) -> Res
     wizard.set(SOFTWARE, Mark::Now, "checking…");
     let found = node::installed_version(settings).ok();
     if found.is_none_or(|version| version < node::MIN_VERSION) {
-        wizard.set(SOFTWARE, Mark::Now, found.map_or("not installed".to_owned(), |v| {
-            format!("{} {} — out of date", chain::NODE_NAME, node::version_string(v))
-        }));
+        wizard.set(
+            SOFTWARE,
+            Mark::Now,
+            found.map_or("not installed".to_owned(), |v| {
+                format!("{} {} — out of date", chain::NODE_NAME, node::version_string(v))
+            }),
+        );
         if let Answer::Quit | Answer::Back = install::offer(wizard, settings, found)? {
             return Ok(Outcome::Quit);
         }

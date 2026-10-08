@@ -57,11 +57,7 @@ fn main() {
     for threads in [2, cores / 2, cores].into_iter().filter(|n| *n > 1) {
         let rate = measure(threads, &midstate, &target);
         best = best.max(rate);
-        println!(
-            "{threads:>3} threads  {:>8.2} MH/s   ({:.2}x)",
-            rate / 1e6,
-            rate / single
-        );
+        println!("{threads:>3} threads  {:>8.2} MH/s   ({:.2}x)", rate / 1e6, rate / single);
     }
 
     println!("\nexpected time to a block, at {:.2} MH/s:", best / 1e6);
@@ -88,10 +84,7 @@ fn measure(threads: usize, midstate: &PowMidstate, target: &Target) -> f64 {
         for thread in 0..threads {
             scope.spawn(move || {
                 // A distinct starting point per thread, as the real miner does.
-                let start = NonceSpace {
-                    nonce2: thread as u32,
-                    ..Default::default()
-                };
+                let start = NonceSpace { nonce2: thread as u32, ..Default::default() };
                 search(midstate, target, start, SAMPLE);
             });
         }

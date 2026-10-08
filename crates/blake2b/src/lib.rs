@@ -49,14 +49,10 @@ pub mod reference;
 /// Note this is **not** a truncated 512-bit digest. The output length is mixed
 /// into the initial state, so the two produce entirely unrelated results.
 pub fn blake2b_256(message: &[u8]) -> [u8; 32] {
-    reference::hash(message, 32)
-        .try_into()
-        .expect("hash returns exactly the requested length")
+    reference::hash(message, 32).try_into().expect("hash returns exactly the requested length")
 }
 
 /// Computes a 512-bit BLAKE2b digest — BLAKE2b's natural output size.
 pub fn blake2b_512(message: &[u8]) -> [u8; 64] {
-    reference::hash(message, 64)
-        .try_into()
-        .expect("hash returns exactly the requested length")
+    reference::hash(message, 64).try_into().expect("hash returns exactly the requested length")
 }

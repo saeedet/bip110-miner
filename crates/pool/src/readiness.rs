@@ -137,17 +137,9 @@ impl std::error::Error for NotReady {}
 /// Checks whether `info` describes a node worth mining on.
 ///
 /// `peers` comes from `getconnectioncount`; `now` is the current Unix time.
-pub fn check(
-    network: Network,
-    info: &BlockchainInfo,
-    peers: u32,
-    now: i64,
-) -> Result<(), NotReady> {
+pub fn check(network: Network, info: &BlockchainInfo, peers: u32, now: i64) -> Result<(), NotReady> {
     if info.chain != network.as_str() {
-        return Err(NotReady::WrongNetwork {
-            wanted: network.to_string(),
-            found: info.chain.clone(),
-        });
+        return Err(NotReady::WrongNetwork { wanted: network.to_string(), found: info.chain.clone() });
     }
 
     if info.initial_block_download {
@@ -155,10 +147,7 @@ pub fn check(
     }
 
     if info.headers.saturating_sub(info.blocks) > AT_TIP_TOLERANCE {
-        return Err(NotReady::BehindHeaders {
-            blocks: info.blocks,
-            headers: info.headers,
-        });
+        return Err(NotReady::BehindHeaders { blocks: info.blocks, headers: info.headers });
     }
 
     // Regtest is a private chain with no peers by design, and its blocks are
@@ -220,10 +209,7 @@ mod tests {
     #[test]
     fn an_old_tip_is_rejected_even_with_peers() {
         let node = info("main", 900_000, 900_000, false, NOW as u64 - 4 * 3600);
-        assert!(matches!(
-            check(Network::Mainnet, &node, 8, NOW),
-            Err(NotReady::StaleTip { .. })
-        ));
+        assert!(matches!(check(Network::Mainnet, &node, 8, NOW), Err(NotReady::StaleTip { .. })));
     }
 
     /// Block timestamps may legitimately sit up to two hours in the future, so
@@ -258,10 +244,7 @@ mod tests {
 
         // Headers well ahead of blocks, with the flag already latched false.
         let by_count = info("main", 899_000, 900_000, false, NOW as u64);
-        assert!(matches!(
-            check(Network::Mainnet, &by_count, 8, NOW),
-            Err(NotReady::BehindHeaders { .. })
-        ));
+        assert!(matches!(check(Network::Mainnet, &by_count, 8, NOW), Err(NotReady::BehindHeaders { .. })));
     }
 
     /// The two must not be confused, because their messages send a reader
@@ -298,18 +281,12 @@ mod tests {
 
         // One past the tolerance does still count, so the check keeps its teeth.
         let node = info("main", 900_000 - (AT_TIP_TOLERANCE + 1), 900_000, false, NOW as u64 - 300);
-        assert!(matches!(
-            check(Network::Mainnet, &node, 8, NOW),
-            Err(NotReady::BehindHeaders { .. })
-        ));
+        assert!(matches!(check(Network::Mainnet, &node, 8, NOW), Err(NotReady::BehindHeaders { .. })));
     }
 
     #[test]
     fn the_wrong_network_is_caught_first() {
         let node = info("test", 900_000, 900_000, false, NOW as u64);
-        assert!(matches!(
-            check(Network::Mainnet, &node, 8, NOW),
-            Err(NotReady::WrongNetwork { .. })
-        ));
+        assert!(matches!(check(Network::Mainnet, &node, 8, NOW), Err(NotReady::WrongNetwork { .. })));
     }
 }

@@ -28,7 +28,10 @@ pub fn create(wizard: &mut Wizard, client: &RpcClient) -> Result<Answer<String>,
         Part::Gap,
         Part::Text("• It's never shown, saved, logged, or sent anywhere but your own node.".into()),
         Part::Text("• You only need it to SPEND rewards, never to mine.".into()),
-        Part::Text("• If you lose it, coins in this wallet are gone for good. Write it down somewhere safe now.".into()),
+        Part::Text(
+            "• If you lose it, coins in this wallet are gone for good. Write it down somewhere safe now."
+                .into(),
+        ),
     ];
     let passphrase = match wizard.passphrase(&intro, &after)? {
         Answer::Given(passphrase) => passphrase,

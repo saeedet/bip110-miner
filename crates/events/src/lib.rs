@@ -329,10 +329,5 @@ pub fn si(count: u64) -> String {
 /// timestamps are UTC.
 pub fn clock(unix: u64) -> String {
     let seconds_today = unix % 86_400;
-    format!(
-        "{:02}:{:02}:{:02}",
-        seconds_today / 3600,
-        (seconds_today % 3600) / 60,
-        seconds_today % 60,
-    )
+    format!("{:02}:{:02}:{:02}", seconds_today / 3600, (seconds_today % 3600) / 60, seconds_today % 60,)
 }

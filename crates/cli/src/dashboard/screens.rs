@@ -24,23 +24,38 @@ pub fn help(state: &State, width: usize, height: usize) -> Vec<Line<'static>> {
         "why being a few bits short is still very far away.".to_owned()
     };
     let topics = [
-        ("HASH", format!(
-            "Your computer scrambles the block's contents into a long number. \
+        (
+            "HASH",
+            format!(
+                "Your computer scrambles the block's contents into a long number. \
              Each try is a \"hash\". {speed}"
-        )),
-        ("ZERO BITS", format!(
-            "A block counts only if that number starts with enough zeros. Each \
+            ),
+        ),
+        (
+            "ZERO BITS",
+            format!(
+                "A block counts only if that number starts with enough zeros. Each \
              extra zero bit makes it twice as hard, which is {gap}"
-        )),
-        ("THE ODDS", "Every hash is a fresh lottery ticket. Past tries don't bring you \
+            ),
+        ),
+        (
+            "THE ODDS",
+            "Every hash is a fresh lottery ticket. Past tries don't bring you \
              closer, so stopping and restarting costs nothing."
-            .to_owned()),
-        ("THE NODE", "Your own copy of the network's rules and history. It's what lets \
+                .to_owned(),
+        ),
+        (
+            "THE NODE",
+            "Your own copy of the network's rules and history. It's what lets \
              you mine without trusting anyone."
-            .to_owned()),
-        ("REWARDS", "Paid only if you find a block — there is no partial credit, and \
+                .to_owned(),
+        ),
+        (
+            "REWARDS",
+            "Paid only if you find a block — there is no partial credit, and \
              no slow drip of earnings. It's all or nothing."
-            .to_owned()),
+                .to_owned(),
+        ),
     ];
 
     let mut frame = Frame::new(width);

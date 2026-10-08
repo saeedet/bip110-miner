@@ -80,13 +80,20 @@ fn caught_up(info: &Value) -> bool {
 fn worth_offering(client: &RpcClient, info: &Value, snapshot: &Snapshot, settings: &Settings) -> bool {
     let early = number(info, "blocks") < u64::from(snapshot.height);
     let states: Value = client.call("getchainstates", json!([])).unwrap_or(Value::Null);
-    let one_chainstate = states.get("chainstates").and_then(Value::as_array).is_none_or(|states| states.len() < 2);
-    let room = platform::free_bytes(&settings.datadir).is_none_or(|free| free > snapshot.bytes + ROOM_BESIDE_SNAPSHOT);
+    let one_chainstate =
+        states.get("chainstates").and_then(Value::as_array).is_none_or(|states| states.len() < 2);
+    let room = platform::free_bytes(&settings.datadir)
+        .is_none_or(|free| free > snapshot.bytes + ROOM_BESIDE_SNAPSHOT);
     early && one_chainstate && room
 }
 
 /// Asks about the quick start, and does it if wanted.
-fn offer(wizard: &mut Wizard, settings: &Settings, client: &RpcClient, snapshot: &Snapshot) -> Result<Answer<()>, String> {
+fn offer(
+    wizard: &mut Wizard,
+    settings: &Settings,
+    client: &RpcClient,
+    snapshot: &Snapshot,
+) -> Result<Answer<()>, String> {
     let intro = [
         Part::Text(
             "Before mining, your computer needs its own copy of the blockchain, so it can check every \
@@ -114,9 +121,15 @@ fn offer(wizard: &mut Wizard, settings: &Settings, client: &RpcClient, snapshot:
 }
 
 /// Downloads the snapshot, waits for the node to know its block, and loads it.
-fn quick_start(wizard: &mut Wizard, settings: &Settings, client: &RpcClient, snapshot: &Snapshot) -> Result<Answer<()>, String> {
+fn quick_start(
+    wizard: &mut Wizard,
+    settings: &Settings,
+    client: &RpcClient,
+    snapshot: &Snapshot,
+) -> Result<Answer<()>, String> {
     let file: PathBuf = platform::state_dir().join("snapshots").join(snapshot.file);
-    let intro = [Part::Text(format!("Downloading the snapshot of block {}…", grouped(snapshot.height.into())))];
+    let intro =
+        [Part::Text(format!("Downloading the snapshot of block {}…", grouped(snapshot.height.into())))];
     if let Fetched::Stopped = download::fetch(wizard, &intro, snapshot.url, &file, snapshot.bytes)? {
         return Ok(Answer::Quit);
     }
@@ -147,7 +160,10 @@ fn quick_start(wizard: &mut Wizard, settings: &Settings, client: &RpcClient, sna
             return Ok(None);
         }
         Ok(Some(vec![
-            Part::Text("Your node is checking the snapshot and loading it. This usually takes 10 to 30 minutes.".into()),
+            Part::Text(
+                "Your node is checking the snapshot and loading it. This usually takes 10 to 30 minutes."
+                    .into(),
+            ),
             Part::Gap,
             Part::Text(format!("{} so far.", format::duration(started.elapsed().as_secs_f64()))),
         ]))
@@ -168,7 +184,11 @@ fn quick_start(wizard: &mut Wizard, settings: &Settings, client: &RpcClient, sna
                 Part::Gap,
                 Part::Text("Nothing is lost — it will check everything from the start instead.".into()),
             ];
-            Ok(if wizard.notice(&body, "enter continue · q quit")? { Answer::Given(()) } else { Answer::Quit })
+            Ok(if wizard.notice(&body, "enter continue · q quit")? {
+                Answer::Given(())
+            } else {
+                Answer::Quit
+            })
         }
     }
 }
@@ -210,10 +230,16 @@ fn time_left(history: &VecDeque<(Instant, f64)>) -> Option<f64> {
 }
 
 /// Screen 5's body.
-fn progress_body(info: &Value, states: &Value, settings: &Settings, history: &VecDeque<(Instant, f64)>) -> Vec<Part> {
+fn progress_body(
+    info: &Value,
+    states: &Value,
+    settings: &Settings,
+    history: &VecDeque<(Instant, f64)>,
+) -> Vec<Part> {
     let progress = info.get("verificationprogress").and_then(Value::as_f64).unwrap_or(0.0);
     let (blocks, headers) = (number(info, "blocks"), number(info, "headers"));
-    let left = time_left(history).map_or_else(|| "working it out…".to_owned(), |s| format!("about {} left", format::duration(s)));
+    let left = time_left(history)
+        .map_or_else(|| "working it out…".to_owned(), |s| format!("about {} left", format::duration(s)));
     let background = states
         .get("chainstates")
         .and_then(Value::as_array)
@@ -252,11 +278,18 @@ fn progress_body(info: &Value, states: &Value, settings: &Settings, history: &Ve
                 bar(checked, 28),
                 (checked * 100.0).floor() as u64
             ))),
-            Part::Line(Line::raw(format!("    {:<17}re-checks every block since 2009 · you can mine meanwhile", ""))),
+            Part::Line(Line::raw(format!(
+                "    {:<17}re-checks every block since 2009 · you can mine meanwhile",
+                ""
+            ))),
         ]);
     }
-    let used = info.get("size_on_disk").and_then(Value::as_u64).map_or_else(String::new, |bytes| format!("{} used", download::size(bytes)));
-    let free = platform::free_bytes(&settings.datadir).map_or_else(String::new, |bytes| format!(" · {} free", download::size(bytes)));
+    let used = info
+        .get("size_on_disk")
+        .and_then(Value::as_u64)
+        .map_or_else(String::new, |bytes| format!("{} used", download::size(bytes)));
+    let free = platform::free_bytes(&settings.datadir)
+        .map_or_else(String::new, |bytes| format!(" · {} free", download::size(bytes)));
     body.extend([
         Part::Gap,
         Part::Text(format!("Disk {used}{free}")),

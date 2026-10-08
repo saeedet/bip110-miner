@@ -10,9 +10,9 @@ use std::collections::VecDeque;
 use events::Level;
 use node_rpc::Network;
 
+use super::draw;
 use super::frame::text;
 use super::state::{Entry, Found, Job, Lifetime, NodeStatus, Overlay, PoolState, State};
-use super::draw;
 use crate::config::Power;
 
 /// 2026-09-14 14:23:05 UTC.

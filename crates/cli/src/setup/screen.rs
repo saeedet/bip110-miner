@@ -51,7 +51,14 @@ pub enum Part {
 }
 
 /// Draws a setup screen.
-pub fn render(title: &str, items: &[Item], body: &[Part], hints: &str, width: usize, height: usize) -> Vec<Line<'static>> {
+pub fn render(
+    title: &str,
+    items: &[Item],
+    body: &[Part],
+    hints: &str,
+    width: usize,
+    height: usize,
+) -> Vec<Line<'static>> {
     let mut frame = Frame::new(width);
     let step = items.iter().position(|item| item.mark == Mark::Now).map_or(items.len(), |index| index + 1);
     frame.top(
@@ -63,7 +70,9 @@ pub fn render(title: &str, items: &[Item], body: &[Part], hints: &str, width: us
         let (mark, name) = match item.mark {
             Mark::Done => (Span::raw("✔").green(), Span::raw(format!("  {:<17}", item.name))),
             Mark::Now => (Span::raw("●").yellow(), Span::raw(format!("  {:<17}", item.name)).bold()),
-            Mark::Waiting => (Span::raw("○").dark_gray(), Span::raw(format!("  {:<17}", item.name)).dark_gray()),
+            Mark::Waiting => {
+                (Span::raw("○").dark_gray(), Span::raw(format!("  {:<17}", item.name)).dark_gray())
+            }
         };
         let mut row = vec![Span::raw("    "), mark, name, Span::raw(item.detail.clone())];
         if item.mark == Mark::Now {
@@ -97,7 +106,11 @@ pub fn options(choices: &[String], selected: usize) -> Vec<Part> {
         .enumerate()
         .map(|(index, choice)| {
             Part::Line(if index == selected {
-                Line::from(vec![Span::raw("    "), Span::raw("▸ ").yellow(), Span::raw(choice.clone()).bold()])
+                Line::from(vec![
+                    Span::raw("    "),
+                    Span::raw("▸ ").yellow(),
+                    Span::raw(choice.clone()).bold(),
+                ])
             } else {
                 Line::from(vec![Span::raw(format!("      {choice}"))])
             })
@@ -158,7 +171,8 @@ impl Wizard {
         self.terminal
             .draw(|frame| {
                 let area = frame.area();
-                let lines = render(title, items, body, hints, usize::from(area.width), usize::from(area.height));
+                let lines =
+                    render(title, items, body, hints, usize::from(area.width), usize::from(area.height));
                 frame.render_widget(Paragraph::new(lines), area);
             })
             .map(|_| ())
@@ -221,7 +235,10 @@ impl Wizard {
             ])));
             if let Some(problem) = &problem {
                 body.push(Part::Gap);
-                body.push(Part::Line(Line::from(vec![Span::raw("      "), Span::raw(problem.clone()).red()])));
+                body.push(Part::Line(Line::from(vec![
+                    Span::raw("      "),
+                    Span::raw(problem.clone()).red(),
+                ])));
             }
             self.show(&body, "type or paste · enter confirm · esc back")?;
             match Self::key(Duration::from_millis(250))? {
@@ -258,14 +275,24 @@ impl Wizard {
         let mut problem: Option<&str> = None;
         loop {
             let dots = |text: &str| "•".repeat(text.chars().count());
-            let cursor = |index: usize| if focus == index { Span::raw("▏").yellow() } else { Span::raw("") };
+            let cursor =
+                |index: usize| if focus == index { Span::raw("▏").yellow() } else { Span::raw("") };
             let matched = !fields[1].is_empty() && fields[0] == fields[1];
             let mut body = intro.to_vec();
             body.push(Part::Gap);
-            body.push(Part::Line(Line::from(vec![Span::raw(format!("      {:<15}", "Passphrase")), Span::raw(dots(&fields[0])), cursor(0)])));
-            let mut second = vec![Span::raw(format!("      {:<15}", "Once more")), Span::raw(dots(&fields[1])), cursor(1)];
+            body.push(Part::Line(Line::from(vec![
+                Span::raw(format!("      {:<15}", "Passphrase")),
+                Span::raw(dots(&fields[0])),
+                cursor(0),
+            ])));
+            let mut second =
+                vec![Span::raw(format!("      {:<15}", "Once more")), Span::raw(dots(&fields[1])), cursor(1)];
             if !fields[1].is_empty() {
-                second.push(if matched { Span::raw("   ✔ match").green() } else { Span::raw("   ✗ not the same").red() });
+                second.push(if matched {
+                    Span::raw("   ✔ match").green()
+                } else {
+                    Span::raw("   ✗ not the same").red()
+                });
             }
             body.push(Part::Line(Line::from(second)));
             if let Some(problem) = problem {
@@ -325,7 +352,11 @@ impl Wizard {
 
     /// Redraws whatever `tick` returns until it says it is done, or the user
     /// quits (false). `tick` runs about four times a second.
-    pub fn watch(&mut self, hints: &str, mut tick: impl FnMut() -> Result<Option<Vec<Part>>, String>) -> Result<bool, String> {
+    pub fn watch(
+        &mut self,
+        hints: &str,
+        mut tick: impl FnMut() -> Result<Option<Vec<Part>>, String>,
+    ) -> Result<bool, String> {
         loop {
             let Some(body) = tick()? else { return Ok(true) };
             self.show(&body, hints)?;

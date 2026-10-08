@@ -27,10 +27,8 @@ pub fn decode(s: &str) -> Result<Vec<u8>, HexError> {
     (0..s.len())
         .step_by(2)
         .map(|i| {
-            u8::from_str_radix(&s[i..i + 2], 16).map_err(|_| HexError::NotHex {
-                offset: i,
-                found: s[i..i + 2].to_owned(),
-            })
+            u8::from_str_radix(&s[i..i + 2], 16)
+                .map_err(|_| HexError::NotHex { offset: i, found: s[i..i + 2].to_owned() })
         })
         .collect()
 }
@@ -38,10 +36,7 @@ pub fn decode(s: &str) -> Result<Vec<u8>, HexError> {
 /// Decodes a hex string known to be exactly `N` bytes.
 pub fn decode_array<const N: usize>(s: &str) -> Result<[u8; N], HexError> {
     let bytes = decode(s)?;
-    bytes.try_into().map_err(|v: Vec<u8>| HexError::WrongLength {
-        expected: N,
-        found: v.len(),
-    })
+    bytes.try_into().map_err(|v: Vec<u8>| HexError::WrongLength { expected: N, found: v.len() })
 }
 
 /// Why a hex string could not be decoded.
@@ -101,10 +96,7 @@ mod tests {
     fn rejects_bad_input() {
         assert_eq!(decode("abc"), Err(HexError::OddLength(3)));
         assert!(matches!(decode("zz"), Err(HexError::NotHex { .. })));
-        assert!(matches!(
-            decode_array::<4>("dead"),
-            Err(HexError::WrongLength { expected: 4, found: 2 })
-        ));
+        assert!(matches!(decode_array::<4>("dead"), Err(HexError::WrongLength { expected: 4, found: 2 })));
     }
 
     #[test]

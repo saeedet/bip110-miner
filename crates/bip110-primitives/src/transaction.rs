@@ -45,10 +45,7 @@ impl OutPoint {
     ///
     /// A coinbase transaction's single input uses this, because it spends
     /// nothing — the coins it creates did not exist before.
-    pub const NULL: Self = Self {
-        txid: Hash256::ZERO,
-        vout: 0xFFFF_FFFF,
-    };
+    pub const NULL: Self = Self { txid: Hash256::ZERO, vout: 0xFFFF_FFFF };
 }
 
 /// A transaction input.
@@ -187,10 +184,7 @@ impl Transaction {
         let mut inputs = Vec::new();
         for _ in 0..input_count {
             inputs.push(TxIn {
-                previous_output: OutPoint {
-                    txid: reader.read_hash()?,
-                    vout: reader.read_u32()?,
-                },
+                previous_output: OutPoint { txid: reader.read_hash()?, vout: reader.read_u32()? },
                 script_sig: reader.read_var_bytes()?.to_vec(),
                 sequence: reader.read_u32()?,
                 witness: Vec::new(),
@@ -200,10 +194,8 @@ impl Transaction {
         let output_count = reader.read_varint()?;
         let mut outputs = Vec::new();
         for _ in 0..output_count {
-            outputs.push(TxOut {
-                value: reader.read_u64()?,
-                script_pubkey: reader.read_var_bytes()?.to_vec(),
-            });
+            outputs
+                .push(TxOut { value: reader.read_u64()?, script_pubkey: reader.read_var_bytes()?.to_vec() });
         }
 
         if segwit {
@@ -215,11 +207,6 @@ impl Transaction {
             }
         }
 
-        Ok(Self {
-            version,
-            inputs,
-            outputs,
-            lock_time: reader.read_u32()?,
-        })
+        Ok(Self { version, inputs, outputs, lock_time: reader.read_u32()? })
     }
 }
