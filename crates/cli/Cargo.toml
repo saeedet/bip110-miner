@@ -4,6 +4,8 @@ version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
+repository.workspace = true
+publish.workspace = true
 description = "Mine the BIP-110 fork of Bitcoin from a Mac, with one command"
 
 [[bin]]

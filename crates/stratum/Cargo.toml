@@ -4,6 +4,8 @@ version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
+repository.workspace = true
+publish.workspace = true
 description = "Stratum V1 wire types, shared by the pool and the miner"
 
 [dependencies]

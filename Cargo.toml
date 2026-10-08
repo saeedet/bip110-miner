@@ -12,6 +12,10 @@ members = ["crates/*"]
 edition = "2024"
 rust-version = "1.97"
 license = "MIT"
+repository = "https://github.com/saeedet/bip110-miner"
+# Nothing here is meant for crates.io: the crates exist to keep the code
+# readable, not to be used on their own.
+publish = false
 
 # Pinned once here and referenced from each crate as `foo.workspace = true`,
 # so two crates can never disagree about a version.

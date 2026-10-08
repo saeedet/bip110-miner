@@ -4,6 +4,8 @@ version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
+repository.workspace = true
+publish.workspace = true
 description = "Minimal JSON-RPC client for a local Bitcoin Knots node"
 
 [dependencies]

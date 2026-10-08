@@ -4,6 +4,8 @@ version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
+repository.workspace = true
+publish.workspace = true
 description = "SHA-256 and BIP340 tagged hashes, as the BLAKE2b proof of work needs them"
 
 [dependencies]
